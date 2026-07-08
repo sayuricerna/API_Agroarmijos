@@ -110,4 +110,53 @@ class Producto {
             throw $e;
         }
     }
+    public function update($id, $data) {
+    $query = "UPDATE " . $this->table_name . "
+              SET
+                id_categoria = :id_categoria,
+                id_marca = :id_marca,
+                id_ubicacion = :id_ubicacion,
+                codigo_interno = :codigo_interno,
+                codigo_fabrica = :codigo_fabrica,
+                codigo_barras = :codigo_barras,
+                nombre = :nombre,
+                descripcion = :descripcion,
+                modelo = :modelo,
+                unidad_medida = :unidad_medida,
+                precio_compra = :precio_compra,
+                precio_venta = :precio_venta,
+                stock_minimo = :stock_minimo,
+                version = version + 1
+              WHERE id_producto = :id_producto";
+
+    $stmt = $this->conn->prepare($query);
+
+    $stmt->bindParam(":id_categoria", $data['id_categoria']);
+    $stmt->bindParam(":id_marca", $data['id_marca']);
+    $stmt->bindParam(":id_ubicacion", $data['id_ubicacion']);
+    $stmt->bindParam(":codigo_interno", $data['codigo_interno']);
+    $stmt->bindParam(":codigo_fabrica", $data['codigo_fabrica']);
+    $stmt->bindParam(":codigo_barras", $data['codigo_barras']);
+    $stmt->bindParam(":nombre", $data['nombre']);
+    $stmt->bindParam(":descripcion", $data['descripcion']);
+    $stmt->bindParam(":modelo", $data['modelo']);
+    $stmt->bindParam(":unidad_medida", $data['unidad_medida']);
+    $stmt->bindParam(":precio_compra", $data['precio_compra']);
+    $stmt->bindParam(":precio_venta", $data['precio_venta']);
+    $stmt->bindParam(":stock_minimo", $data['stock_minimo']);
+    $stmt->bindParam(":id_producto", $id);
+
+    return $stmt->execute();
+}
+
+public function deleteLogic($id) {
+    $query = "UPDATE " . $this->table_name . "
+              SET estado = 0
+              WHERE id_producto = :id_producto";
+
+    $stmt = $this->conn->prepare($query);
+    $stmt->bindParam(":id_producto", $id);
+
+    return $stmt->execute();
+}
 }

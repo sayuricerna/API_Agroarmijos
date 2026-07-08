@@ -1,18 +1,19 @@
 <?php
+
 require_once __DIR__ . '/../controllers/ProductoController.php';
 
 $productoController = new ProductoController($db);
-$auth = new AuthMiddleware();
 
+$auth = new AuthMiddleware();
 $currentUser = $auth->checkAuth();
 
 $action = isset($segments[1]) ? $segments[1] : '';
 
 switch ($action) {
+
     case 'listar':
         if ($method === 'GET') {
-            $term = isset($_GET['search']) ? $_GET['search'] : null;
-            $productoController->listar($term);
+            $productoController->listar($_GET['search'] ?? null);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
         }
@@ -20,23 +21,34 @@ switch ($action) {
 
     case 'crear':
         if ($method === 'POST') {
-            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA', 'COMPRAS']);
+            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
             $productoController->guardar($input_data);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
         }
         break;
 
-    case 'ajustar-stock':
-        if ($method === 'POST') {
+    case 'actualizar':
+        if ($method === 'PUT') {
             $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
-            $productoController->procesarAjuste($input_data, $currentUser['id_usuario']);
+            $id = $segments[2] ?? 0;
+            $productoController->actualizar($id, $input_data);
+        } else {
+            Response::json("error", "Método no permitido.", null, 405);
+        }
+        break;
+
+    case 'eliminar':
+        if ($method === 'DELETE') {
+            $auth->checkRole($currentUser, ['ADMIN']);
+            $id = $segments[2] ?? 0;
+            $productoController->eliminar($id);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
         }
         break;
 
     default:
-        Response::json("error", "Acción del catálogo de productos no encontrada.", null, 404);
+        Response::json("error", "Endpoint de productos no válido.", null, 404);
         break;
 }
