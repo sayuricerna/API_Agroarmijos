@@ -5,11 +5,26 @@ $controller = new CatalogoController($db);
 $auth = new AuthMiddleware();
 $currentUser = $auth->checkAuth(); 
 
+$tabla = $modulo;
 
-$tabla = $modulo; 
-$pk = 'id_' . rtrim($tabla, 's'); 
+$primaryKeys = [
+    'categorias' => 'id_categoria',
+    'marcas' => 'id_marca',
+    'clientes' => 'id_cliente',
+    'proveedores' => 'id_proveedor'
+];
+
+if (!isset($primaryKeys[$tabla])) {
+    Response::json("error", "Catálogo no permitido.", null, 400);
+}
+
+$pk = $primaryKeys[$tabla];
+
 $campo_orden = ($tabla === 'proveedores') ? 'razon_social' : 'nombre';
-if ($tabla === 'clientes' || $tabla === 'usuarios') $campo_orden = 'nombres';
+
+if ($tabla === 'clientes' || $tabla === 'usuarios') {
+    $campo_orden = 'nombres';
+}
 
 $action = isset($segments[1]) ? $segments[1] : '';
 
