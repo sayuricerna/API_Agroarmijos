@@ -40,13 +40,24 @@ switch ($modulo) {
         require_once __DIR__ . '/routes/dashboard.php';
         break;
 
+    case 'movimientos':
+        require_once __DIR__ . '/routes/movimientos.php';
+        break;
+    case 'reportes':
+        require_once __DIR__ . '/routes/reportes.php';
+        break;
+    case 'roles':
+        require_once __DIR__ . '/routes/roles.php';
+        break;
     case 'categorias':
     case 'marcas':
     case 'proveedores':
     case 'clientes':
         require_once __DIR__ . '/routes/catalogos.php';
         break;
-
+    case 'usuarios':
+        require_once __DIR__ . '/routes/usuarios.php';
+        break;
     default:
         Response::json("error", "Módulo no encontrado en el ERP AgroArmijos.", null, 404);
         break;
