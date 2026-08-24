@@ -189,6 +189,23 @@ class Reserva {
                     PDO::PARAM_INT
                 );
                 $stmtStock->execute();
+
+                // Kárdex: registra la reserva (tipo 5 = RESERVA). No se toca
+                // stock_actual (la mercadería sigue físicamente en bodega),
+                // por eso aquí se usa stock_disponible como anterior/nuevo —
+                // es la cantidad que deja de estar disponible para vender.
+                $stockDisponibleAnterior = (float) $registroProducto['stock_disponible'];
+                $stockDisponibleNuevo = $stockDisponibleAnterior - $cantidad;
+
+                $queryKardex = "CALL sp_registrar_movimiento(:id_prod, 5, :id_user, NULL, NULL, :id_reserva, :cant, :ant, :nue, 'Reserva de producto')";
+                $stmtKardex = $this->conn->prepare($queryKardex);
+                $stmtKardex->bindValue(':id_prod', $idProducto, PDO::PARAM_INT);
+                $stmtKardex->bindValue(':id_user', $idUsuario, PDO::PARAM_INT);
+                $stmtKardex->bindValue(':id_reserva', $idReserva, PDO::PARAM_INT);
+                $stmtKardex->bindValue(':cant', $cantidad);
+                $stmtKardex->bindValue(':ant', $stockDisponibleAnterior);
+                $stmtKardex->bindValue(':nue', $stockDisponibleNuevo);
+                $stmtKardex->execute();
             }
 
             $this->conn->commit();
@@ -204,7 +221,7 @@ class Reserva {
         }
     }
 
-    public function cancelar(int $idReserva): bool {
+    public function cancelar(int $idReserva, int $idUsuario): bool {
         try {
             $this->conn->beginTransaction();
 
@@ -239,6 +256,23 @@ class Reserva {
                 $cantidad = (float) $detalle['cantidad'];
                 $idProducto = (int) $detalle['id_producto'];
 
+                // Se lee el stock_disponible actual antes de liberarlo, para
+                // poder dejar la trazabilidad anterior/nuevo en el Kárdex.
+                $querySelectStock = "SELECT stock_disponible
+                                      FROM productos
+                                      WHERE id_producto = :id_producto
+                                      FOR UPDATE";
+                $stmtSelectStock = $this->conn->prepare($querySelectStock);
+                $stmtSelectStock->bindValue(
+                    ':id_producto',
+                    $idProducto,
+                    PDO::PARAM_INT
+                );
+                $stmtSelectStock->execute();
+                $stockDisponibleAnterior = (float) (
+                    $stmtSelectStock->fetch(PDO::FETCH_ASSOC)['stock_disponible'] ?? 0
+                );
+
                 $queryStock = "UPDATE productos
                                SET
                                  stock_reservado =
@@ -256,6 +290,21 @@ class Reserva {
                     PDO::PARAM_INT
                 );
                 $stmtStock->execute();
+
+                // Kárdex: registra la liberación de la reserva (tipo 6 =
+                // CANCELACION_RESERVA), misma convención que al crearla:
+                // anterior/nuevo son stock_disponible, no stock_actual.
+                $stockDisponibleNuevo = $stockDisponibleAnterior + $cantidad;
+
+                $queryKardex = "CALL sp_registrar_movimiento(:id_prod, 6, :id_user, NULL, NULL, :id_reserva, :cant, :ant, :nue, 'Liberación de reserva')";
+                $stmtKardex = $this->conn->prepare($queryKardex);
+                $stmtKardex->bindValue(':id_prod', $idProducto, PDO::PARAM_INT);
+                $stmtKardex->bindValue(':id_user', $idUsuario, PDO::PARAM_INT);
+                $stmtKardex->bindValue(':id_reserva', $idReserva, PDO::PARAM_INT);
+                $stmtKardex->bindValue(':cant', $cantidad);
+                $stmtKardex->bindValue(':ant', $stockDisponibleAnterior);
+                $stmtKardex->bindValue(':nue', $stockDisponibleNuevo);
+                $stmtKardex->execute();
             }
 
             $queryCancelar = "UPDATE reservas

@@ -80,7 +80,7 @@ class ReservaController {
         }
     }
 
-    public function cancelar(int $idReserva): void {
+    public function cancelar(int $idReserva, int $idUsuario): void {
         if ($idReserva <= 0) {
             Response::json(
                 "error",
@@ -91,7 +91,7 @@ class ReservaController {
         }
 
         try {
-            $this->model->cancelar($idReserva);
+            $this->model->cancelar($idReserva, $idUsuario);
 
             Response::json(
                 "success",
