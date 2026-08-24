@@ -87,7 +87,7 @@ switch ($action) {
         );
 
         $idReserva = (int) ($segments[2] ?? 0);
-        $controller->cancelar($idReserva);
+        $controller->cancelar($idReserva, (int) $currentUser['id_usuario']);
         break;
 
     case 'confirmar':
