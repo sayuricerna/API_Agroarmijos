@@ -3,15 +3,19 @@ use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 
 class JwtHandler {
-    private $secret_key = "AgroArmijos_Secret_Key_2026_@PI_UNIANDES";
+    private $secret_key;
     private $algorithm = "HS256";
+
+    public function __construct() {
+        $this->secret_key = Env::get('JWT_SECRET', 'CAMBIA_ESTE_SECRETO_EN_TU_ARCHIVO_.ENV');
+    }
 
     public function generateToken($user_id, $username, $role_name) {
         $issued_at = time();
         $expiration_time = $issued_at + (60 * 60 * 12); // token 12 horas
 
         $payload = [
-            "iss" => "localhost",
+            "iss" => Env::get('JWT_ISSUER', 'localhost'),
             "iat" => $issued_at,
             "exp" => $expiration_time,
             "data" => [
@@ -29,7 +33,7 @@ class JwtHandler {
             $decoded = JWT::decode($token, new Key($this->secret_key, $this->algorithm));
             return (array) $decoded->data;
         } catch (Exception $e) {
-            return null; 
+            return null;
         }
     }
 }

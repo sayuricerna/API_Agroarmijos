@@ -1,0 +1,16 @@
+# Dependencias (regenerables con "composer install", nunca se versionan)
+/vendor/
+
+# Variables de entorno reales — el secreto JWT y las credenciales de BD
+# viven aquí. Solo se versiona .env.example como plantilla.
+/.env
+
+# Archivos subidos por usuarios (no son elementos de configuración)
+/uploads/*
+!/uploads/.gitkeep
+
+# Basura de sistema operativo / IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

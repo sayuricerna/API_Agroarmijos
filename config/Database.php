@@ -1,10 +1,17 @@
 <?php
 class Database {
-    private $host = "localhost";
-    private $db_name = "db_agroarmijos";
-    private $username = "root";
-    private $password = "";
+    private $host;
+    private $db_name;
+    private $username;
+    private $password;
     public $conn;
+
+    public function __construct() {
+        $this->host     = Env::get('DB_HOST', 'localhost');
+        $this->db_name  = Env::get('DB_NAME', 'db_agroarmijos');
+        $this->username = Env::get('DB_USER', 'root');
+        $this->password = Env::get('DB_PASS', '');
+    }
 
     public function getConnection() {
         $this->conn = null;
@@ -20,11 +27,12 @@ class Database {
                 ]
             );
         } catch(PDOException $exception) {
+            error_log("[Database::getConnection] " . $exception->getMessage());
             header("Content-Type: application/json");
             http_response_code(500);
             echo json_encode([
                 "status" => "error",
-                "message" => "Error de conexión a la base de datos: " . $exception->getMessage()
+                "message" => "Error de conexión a la base de datos."
             ]);
             exit;
         }
