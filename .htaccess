@@ -1,0 +1,13 @@
+# Asegura que el header Authorization (usado para el token JWT) siempre
+# llegue a PHP. Sin esto, según cómo esté configurado Apache/PHP en XAMPP,
+# el header puede perderse de forma intermitente -sobre todo con varias
+# peticiones casi simultáneas- y AuthMiddleware::checkAuth() responde
+# "Token requerido" aunque el navegador sí lo haya enviado.
+
+CGIPassAuth On
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+</IfModule>
