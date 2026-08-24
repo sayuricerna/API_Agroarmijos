@@ -39,11 +39,13 @@ class ProductoController {
                 Response::json("success", "Producto registrado de manera exitosa.", null, 201);
             }
         } catch (PDOException $e) {
+            error_log("[ProductoController::guardar] " . $e->getMessage());
+
             if ($e->getCode() == 23000) {
                 Response::json("error", "El código interno, código de barras o código de fábrica ya está registrado.", null, 409);
             }
 
-            Response::json("error", "Error interno en el servidor: " . $e->getMessage(), null, 500);
+            Response::json("error", "Ocurrió un error al registrar el producto. Intenta nuevamente.", null, 500);
         }
     }
 
@@ -68,11 +70,13 @@ class ProductoController {
                 Response::json("success", "Producto actualizado correctamente.", null, 200);
             }
         } catch (PDOException $e) {
+            error_log("[ProductoController::actualizar] " . $e->getMessage());
+
             if ($e->getCode() == 23000) {
                 Response::json("error", "El código interno, código de barras o código de fábrica ya está registrado.", null, 409);
             }
 
-            Response::json("error", "Error interno en el servidor: " . $e->getMessage(), null, 500);
+            Response::json("error", "Ocurrió un error al actualizar el producto. Intenta nuevamente.", null, 500);
         }
     }
 
@@ -86,7 +90,8 @@ class ProductoController {
                 Response::json("success", "Producto dado de baja correctamente.", null, 200);
             }
         } catch (Exception $e) {
-            Response::json("error", $e->getMessage(), null, 500);
+            error_log("[ProductoController::eliminar] " . $e->getMessage());
+            Response::json("error", "Ocurrió un error al dar de baja el producto. Intenta nuevamente.", null, 500);
         }
     }
 
