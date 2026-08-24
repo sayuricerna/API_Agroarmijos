@@ -28,10 +28,20 @@ if ($tabla === 'clientes' || $tabla === 'usuarios') {
 
 $action = isset($segments[1]) ? $segments[1] : '';
 
+// Filtro opcional ?estado=activo|inactivo|todos para el listado. Si no
+// viene o viene con un valor no reconocido, se queda en 'activo' (el
+// comportamiento de siempre), así que ningún llamador existente que no
+// mande este parámetro se ve afectado.
+$estadosPermitidos = ['activo', 'inactivo', 'todos'];
+$estadoFiltro = $_GET['estado'] ?? 'activo';
+if (!in_array($estadoFiltro, $estadosPermitidos, true)) {
+    $estadoFiltro = 'activo';
+}
+
 switch ($action) {
     case 'listar':
         if ($method === 'GET') {
-            $controller->listar($tabla, $campo_orden);
+            $controller->listar($tabla, $campo_orden, $estadoFiltro);
         }
         break;
 
@@ -48,9 +58,21 @@ switch ($action) {
 
     case 'eliminar':
         if ($method === 'DELETE') {
-            $auth->checkRole($currentUser, ['ADMIN']); 
+            $auth->checkRole($currentUser, ['ADMIN']);
             $id = isset($segments[2]) ? $segments[2] : 0;
             $controller->eliminar($tabla, $pk, $id);
+        }
+        break;
+
+    case 'reactivar':
+        // Mismo rol que 'eliminar': dar de baja y reactivar son la misma
+        // operación (cambiar estado), así que exigen el mismo permiso.
+        if ($method === 'PUT') {
+            $auth->checkRole($currentUser, ['ADMIN']);
+            $id = isset($segments[2]) ? $segments[2] : 0;
+            $controller->reactivar($tabla, $pk, $id);
+        } else {
+            Response::json("error", "Método no permitido.", null, 405);
         }
         break;
         case 'actualizar':

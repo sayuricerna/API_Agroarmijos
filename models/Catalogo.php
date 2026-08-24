@@ -6,8 +6,31 @@ class Catalogo {
         $this->conn = $db;
     }
 
-    public function listarTodo($tabla, $campo_orden) {
-        $query = "SELECT * FROM " . $tabla . " WHERE estado = 1 ORDER BY " . $campo_orden . " ASC";
+    /*
+     * $estadoFiltro controla qué registros trae:
+     *   'activo'   (default, mismo comportamiento de siempre) -> WHERE estado = 1
+     *   'inactivo' -> WHERE estado = 0
+     *   'todos'    -> sin filtro de estado
+     * El default se mantiene en 'activo' a propósito: cualquier llamada
+     * existente que no mande este parámetro sigue viendo exactamente lo
+     * mismo que antes (selects de formularios, filtros, etc.), no se
+     * rompe nada. La validación del valor recibido ya se hace en el
+     * controller/ruta, pero se revalida aquí también por seguridad ya
+     * que se concatena directo en el SQL.
+     */
+    public function listarTodo($tabla, $campo_orden, $estadoFiltro = 'activo') {
+        $where = '';
+
+        if ($estadoFiltro === 'activo') {
+            $where = ' WHERE estado = 1';
+        } elseif ($estadoFiltro === 'inactivo') {
+            $where = ' WHERE estado = 0';
+        } elseif ($estadoFiltro !== 'todos') {
+            // Cualquier valor no reconocido cae al comportamiento de siempre.
+            $where = ' WHERE estado = 1';
+        }
+
+        $query = "SELECT * FROM " . $tabla . $where . " ORDER BY " . $campo_orden . " ASC";
         $stmt = $this->conn->prepare($query);
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -49,8 +72,22 @@ class Catalogo {
     return $stmt->execute();
 }
     public function eliminarLogico($tabla, $pk, $id) {
-        $query = "UPDATE " . $tabla . " SET estado = 0 WHERE " . $pk . " = :id";
+        return $this->cambiarEstado($tabla, $pk, $id, 0);
+    }
+
+    // Contraparte de eliminarLogico(): reactiva un registro dado de baja
+    // (estado 0 -> 1). No revierte ni recalcula nada más: el registro
+    // solo vuelve a aparecer en los listados/selects "activo", igual que
+    // cualquier otro activo.
+    public function reactivarLogico($tabla, $pk, $id) {
+        return $this->cambiarEstado($tabla, $pk, $id, 1);
+    }
+
+    private function cambiarEstado($tabla, $pk, $id, $estado) {
+        $estado = $estado ? 1 : 0;
+        $query = "UPDATE " . $tabla . " SET estado = :estado WHERE " . $pk . " = :id";
         $stmt = $this->conn->prepare($query);
+        $stmt->bindParam(":estado", $estado, PDO::PARAM_INT);
         $stmt->bindParam(":id", $id);
         return $stmt->execute();
     }
