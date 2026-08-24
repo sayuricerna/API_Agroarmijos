@@ -9,8 +9,8 @@ class CatalogoController {
         $this->model = new Catalogo($db);
     }
 
-    public function listar($tabla, $orden) {
-        $res = $this->model->listarTodo($tabla, $orden);
+    public function listar($tabla, $orden, $estadoFiltro = 'activo') {
+        $res = $this->model->listarTodo($tabla, $orden, $estadoFiltro);
         Response::json("success", "Datos cargados correctamente.", $res);
     }
 
@@ -60,6 +60,14 @@ class CatalogoController {
             Response::json("success", "Registro dado de baja correctamente.");
         } else {
             Response::json("error", "No se pudo eliminar el registro.", null, 400);
+        }
+    }
+
+    public function reactivar($tabla, $pk, $id) {
+        if ($this->model->reactivarLogico($tabla, $pk, $id)) {
+            Response::json("success", "Registro reactivado correctamente.");
+        } else {
+            Response::json("error", "No se pudo reactivar el registro.", null, 400);
         }
     }
     public function actualizar($tabla, $pk, $id, $data) {
