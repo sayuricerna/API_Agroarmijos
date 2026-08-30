@@ -10,61 +10,128 @@ class Venta {
         try {
             $this->conn->beginTransaction();
 
-            $query = "INSERT INTO ventas (id_cliente, id_usuario, fecha, subtotal, descuento, iva, total, observacion, estado) 
-                      VALUES (:id_cliente, :id_usuario, CURDATE(), :subtotal, :descuento, :iva, :total, :observacion, 'PAGADA')";
-            
-            $stmt = $this->conn->prepare($query);
-            $stmt->bindParam(":id_cliente", $data['id_cliente']);
-            $stmt->bindParam(":id_usuario", $id_usuario);
-            $stmt->bindParam(":subtotal", $data['subtotal']);
-            $stmt->bindParam(":descuento", $data['descuento']);
-            $stmt->bindParam(":iva", $data['iva']);
-            $stmt->bindParam(":total", $data['total']);
-            $stmt->bindParam(":observacion", $data['observacion']);
-            $stmt->execute();
-            
-            $id_venta = $this->conn->lastInsertId();
+            /*
+             * FIX (GCS — fix/venta-calculo-servidor): antes esta función
+             * guardaba tal cual el precio_unitario/subtotal/total que
+             * mandaba el frontend, sin comparar contra el precio real del
+             * producto. Eso permitía registrar una venta con precios
+             * inventados (por ejemplo, mandando la petición directo con
+             * Postman en vez de usar la app). Ahora el precio de cada
+             * línea se toma SIEMPRE de la tabla productos, y el
+             * descuento por línea (que sí es una decisión legítima del
+             * vendedor) se acota para que no sea negativo ni mayor al
+             * subtotal de esa línea. El subtotal/total de la venta ya no
+             * se reciben del frontend: se recalculan sumando las líneas
+             * validadas.
+             */
+            $lineas = [];
+            $subtotal_general = 0.0;
+            $descuento_general = 0.0;
 
             foreach ($data['productos'] as $prod) {
-                // Bloqueo de fila para control de concurrencia
-                $qStock = "SELECT stock_actual FROM productos WHERE id_producto = :id FOR UPDATE";
+                // Bloqueo de fila para control de concurrencia — ahora también
+                // trae el precio_venta real, no solo el stock.
+                $qStock = "SELECT stock_actual, precio_venta FROM productos WHERE id_producto = :id FOR UPDATE";
                 $stStock = $this->conn->prepare($qStock);
                 $stStock->bindParam(":id", $prod['id_producto']);
                 $stStock->execute();
                 $pActual = $stStock->fetch(PDO::FETCH_ASSOC);
 
-                if (!$pActual || $pActual['stock_actual'] < $prod['cantidad']) {
+                if (!$pActual) {
+                    throw new Exception("Producto ID " . $prod['id_producto'] . " no existe o no está disponible.");
+                }
+
+                if ($pActual['stock_actual'] < $prod['cantidad']) {
                     throw new Exception("Stock insuficiente para el producto ID: " . $prod['id_producto']);
                 }
 
                 $stock_anterior = $pActual['stock_actual'];
                 $stock_nuevo = $stock_anterior - $prod['cantidad'];
 
+                $precio_real = (float) $pActual['precio_venta'];
+                $cantidad = (float) $prod['cantidad'];
+                $subtotal_bruto_linea = $precio_real * $cantidad;
+
+                $descuento_linea = (float) ($prod['descuento'] ?? 0);
+                if ($descuento_linea < 0) {
+                    $descuento_linea = 0;
+                }
+                if ($descuento_linea > $subtotal_bruto_linea) {
+                    $descuento_linea = $subtotal_bruto_linea;
+                }
+
+                $subtotal_linea = $subtotal_bruto_linea - $descuento_linea;
+
+                $subtotal_general += $subtotal_bruto_linea;
+                $descuento_general += $descuento_linea;
+
+                $lineas[] = [
+                    "id_producto"     => $prod['id_producto'],
+                    "cantidad"        => $cantidad,
+                    "precio_unitario" => $precio_real,
+                    "descuento"       => $descuento_linea,
+                    "subtotal"        => $subtotal_linea,
+                    "stock_anterior"  => $stock_anterior,
+                    "stock_nuevo"     => $stock_nuevo,
+                ];
+            }
+
+            // IVA: se sigue aceptando el valor calculado por el frontend
+            // (no conozco la tasa/regla exacta que usa el negocio), pero
+            // acotado dentro de un rango razonable para que no llegue
+            // negativo ni absurdamente alto respecto al subtotal real.
+            $iva = (float) ($data['iva'] ?? 0);
+            if ($iva < 0) {
+                $iva = 0;
+            }
+            $iva_maximo = $subtotal_general * 0.5;
+            if ($iva > $iva_maximo) {
+                $iva = $iva_maximo;
+            }
+
+            $total_general = $subtotal_general - $descuento_general + $iva;
+
+            $query = "INSERT INTO ventas (id_cliente, id_usuario, fecha, subtotal, descuento, iva, total, observacion, estado)
+                      VALUES (:id_cliente, :id_usuario, CURDATE(), :subtotal, :descuento, :iva, :total, :observacion, 'PAGADA')";
+
+            $stmt = $this->conn->prepare($query);
+            $stmt->bindParam(":id_cliente", $data['id_cliente']);
+            $stmt->bindParam(":id_usuario", $id_usuario);
+            $stmt->bindParam(":subtotal", $subtotal_general);
+            $stmt->bindParam(":descuento", $descuento_general);
+            $stmt->bindParam(":iva", $iva);
+            $stmt->bindParam(":total", $total_general);
+            $stmt->bindParam(":observacion", $data['observacion']);
+            $stmt->execute();
+
+            $id_venta = $this->conn->lastInsertId();
+
+            foreach ($lineas as $linea) {
                 $qUpdate = "UPDATE productos SET stock_actual = :sn, stock_disponible = :sn - stock_reservado WHERE id_producto = :id";
                 $stUpdate = $this->conn->prepare($qUpdate);
-                $stUpdate->bindParam(":sn", $stock_nuevo);
-                $stUpdate->bindParam(":id", $prod['id_producto']);
+                $stUpdate->bindParam(":sn", $linea['stock_nuevo']);
+                $stUpdate->bindParam(":id", $linea['id_producto']);
                 $stUpdate->execute();
 
-                $qDetalle = "INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario, descuento, subtotal) 
+                $qDetalle = "INSERT INTO detalle_ventas (id_venta, id_producto, cantidad, precio_unitario, descuento, subtotal)
                              VALUES (:id_venta, :id_producto, :cantidad, :precio, :descuento, :subtotal)";
                 $stDetalle = $this->conn->prepare($qDetalle);
                 $stDetalle->bindParam(":id_venta", $id_venta);
-                $stDetalle->bindParam(":id_producto", $prod['id_producto']);
-                $stDetalle->bindParam(":cantidad", $prod['cantidad']);
-                $stDetalle->bindParam(":precio", $prod['precio_unitario']);
-                $stDetalle->bindParam(":descuento", $prod['descuento']);
-                $stDetalle->bindParam(":subtotal", $prod['subtotal']);
+                $stDetalle->bindParam(":id_producto", $linea['id_producto']);
+                $stDetalle->bindParam(":cantidad", $linea['cantidad']);
+                $stDetalle->bindParam(":precio", $linea['precio_unitario']);
+                $stDetalle->bindParam(":descuento", $linea['descuento']);
+                $stDetalle->bindParam(":subtotal", $linea['subtotal']);
                 $stDetalle->execute();
 
                 $qKardex = "CALL sp_registrar_movimiento(:id_prod, 2, :id_user, NULL, :id_venta, NULL, :cant, :ant, :nue, 'Salida por Venta')";
                 $stKardex = $this->conn->prepare($qKardex);
-                $stKardex->bindParam(":id_prod", $prod['id_producto']);
+                $stKardex->bindParam(":id_prod", $linea['id_producto']);
                 $stKardex->bindParam(":id_user", $id_usuario);
                 $stKardex->bindParam(":id_venta", $id_venta);
-                $stKardex->bindParam(":cant", $prod['cantidad']);
-                $stKardex->bindParam(":ant", $stock_anterior);
-                $stKardex->bindParam(":nue", $stock_nuevo);
+                $stKardex->bindParam(":cant", $linea['cantidad']);
+                $stKardex->bindParam(":ant", $linea['stock_anterior']);
+                $stKardex->bindParam(":nue", $linea['stock_nuevo']);
                 $stKardex->execute();
             }
 
