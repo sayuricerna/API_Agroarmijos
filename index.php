@@ -64,6 +64,9 @@ switch ($modulo) {
     case 'reservas':
         require_once __DIR__ . '/routes/reservas.php';
         break;
+    case 'auditoria':
+        require_once __DIR__ . '/routes/auditoria.php';
+        break;
     default:
         Response::json("error", "Módulo no encontrado en el ERP AgroArmijos.", null, 404);
         break;
