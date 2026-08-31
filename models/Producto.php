@@ -78,7 +78,7 @@ class Producto {
         try {
             $this->conn->beginTransaction();
 
-            $queryProd = "SELECT stock_actual, version FROM " . $this->table_name . " WHERE id_producto = :id FOR UPDATE";
+            $queryProd = "SELECT stock_actual, version, nombre FROM " . $this->table_name . " WHERE id_producto = :id FOR UPDATE";
             $stmtProd = $this->conn->prepare($queryProd);
             $stmtProd->bindParam(":id", $id_producto);
             $stmtProd->execute();
@@ -89,11 +89,24 @@ class Producto {
             }
 
             $stock_anterior = $producto['stock_actual'];
-            
+
             if (in_array($id_tipo_movimiento, [1, 3, 8])) { // Entradas
                 $stock_nuevo = $stock_anterior + $cantidad;
-            } else { 
+            } else {
                 $stock_nuevo = $stock_anterior - $cantidad;
+
+                // FIX (GCS — pendiente del roadmap): antes no había ninguna
+                // validación acá, así que un ajuste de disminución (por
+                // ejemplo, desde el modal de Ajustes de Inventario) podía
+                // dejar stock_actual en negativo sin avisar. Se aborta
+                // antes de tocar la tabla, dentro de la misma transacción,
+                // igual que ya se valida en Compra::anular().
+                if ($stock_nuevo < 0) {
+                    throw new Exception(
+                        "No se puede aplicar el ajuste: \"{$producto['nombre']}\" tiene $stock_anterior en stock " .
+                        "y la disminución es de $cantidad, lo que dejaría el stock en negativo."
+                    );
+                }
             }
 
             $queryUpdate = "UPDATE " . $this->table_name . " 
