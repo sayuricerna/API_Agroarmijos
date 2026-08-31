@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../helpers/Auditor.php';
+
 class Catalogo {
     private $conn;
 
@@ -36,21 +38,38 @@ class Catalogo {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function insertar($tabla, $datos) {
+    public function insertar($tabla, $datos, $idUsuario) {
         $columnas = implode(', ', array_keys($datos));
         $valores = ':' . implode(', :', array_keys($datos));
-        
+
         $query = "INSERT INTO " . $tabla . " ($columnas) VALUES ($valores)";
         $stmt = $this->conn->prepare($query);
-        
+
         foreach ($datos as $key => &$val) {
             $stmt->bindParam(":$key", $val);
         }
-        
-        return $stmt->execute();
+
+        $ok = $stmt->execute();
+
+        if ($ok) {
+            $idNuevo = (int) $this->conn->lastInsertId();
+            $nombreRegistro = $datos['nombre'] ?? $datos['razon_social'] ?? ('#' . $idNuevo);
+            Auditor::registrarSeguro(
+                $this->conn, $idUsuario, ucfirst($tabla), $tabla, $idNuevo, 'CREAR',
+                "Creó el registro \"$nombreRegistro\" en $tabla."
+            );
+        }
+
+        return $ok;
     }
 
-    public function actualizar($tabla, $pk, $id, $datos) {
+    public function actualizar($tabla, $pk, $id, $datos, $idUsuario) {
+    $queryAntes = "SELECT * FROM " . $tabla . " WHERE " . $pk . " = :id";
+    $stmtAntes = $this->conn->prepare($queryAntes);
+    $stmtAntes->bindParam(":id", $id);
+    $stmtAntes->execute();
+    $antes = $stmtAntes->fetch(PDO::FETCH_ASSOC) ?: [];
+
     $campos = [];
 
     foreach ($datos as $key => $value) {
@@ -69,27 +88,47 @@ class Catalogo {
 
     $stmt->bindParam(":id", $id);
 
-    return $stmt->execute();
+    $ok = $stmt->execute();
+
+    if ($ok) {
+        [$antesFiltrado, $despuesFiltrado] = Auditor::diferencias($antes, $datos);
+        $nombreRegistro = $datos['nombre'] ?? $datos['razon_social'] ?? ('#' . $id);
+        Auditor::registrarSeguro(
+            $this->conn, $idUsuario, ucfirst($tabla), $tabla, (int) $id, 'EDITAR',
+            "Editó el registro \"$nombreRegistro\" en $tabla.", $antesFiltrado, $despuesFiltrado
+        );
+    }
+
+    return $ok;
 }
-    public function eliminarLogico($tabla, $pk, $id) {
-        return $this->cambiarEstado($tabla, $pk, $id, 0);
+    public function eliminarLogico($tabla, $pk, $id, $idUsuario) {
+        return $this->cambiarEstado($tabla, $pk, $id, 0, $idUsuario);
     }
 
     // Contraparte de eliminarLogico(): reactiva un registro dado de baja
     // (estado 0 -> 1). No revierte ni recalcula nada más: el registro
     // solo vuelve a aparecer en los listados/selects "activo", igual que
     // cualquier otro activo.
-    public function reactivarLogico($tabla, $pk, $id) {
-        return $this->cambiarEstado($tabla, $pk, $id, 1);
+    public function reactivarLogico($tabla, $pk, $id, $idUsuario) {
+        return $this->cambiarEstado($tabla, $pk, $id, 1, $idUsuario);
     }
 
-    private function cambiarEstado($tabla, $pk, $id, $estado) {
+    private function cambiarEstado($tabla, $pk, $id, $estado, $idUsuario) {
         $estado = $estado ? 1 : 0;
         $query = "UPDATE " . $tabla . " SET estado = :estado WHERE " . $pk . " = :id";
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":estado", $estado, PDO::PARAM_INT);
         $stmt->bindParam(":id", $id);
-        return $stmt->execute();
+        $ok = $stmt->execute();
+
+        if ($ok) {
+            Auditor::registrarSeguro(
+                $this->conn, $idUsuario, ucfirst($tabla), $tabla, (int) $id, $estado ? 'ACTIVAR' : 'DESACTIVAR',
+                "Cambió el estado del registro #$id en $tabla a " . ($estado ? 'activo' : 'inactivo') . "."
+            );
+        }
+
+        return $ok;
     }
     public function existeDocumentoCliente($documento, $id = null) {
     $query = "SELECT id_cliente FROM clientes WHERE numero_documento = :documento";

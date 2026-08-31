@@ -14,7 +14,7 @@ class CatalogoController {
         Response::json("success", "Datos cargados correctamente.", $res);
     }
 
-    public function guardar($tabla, $data) {
+    public function guardar($tabla, $data, $idUsuario) {
         if ($tabla === 'clientes') {
 
             $documento = $data['numero_documento'] ?? '';
@@ -44,7 +44,7 @@ class CatalogoController {
             $data['tipo_documento'] = strlen($documento) === 13 ? 'RUC' : 'CEDULA';
         }
         try {
-            if ($this->model->insertar($tabla, $data)) {
+            if ($this->model->insertar($tabla, $data, $idUsuario)) {
                 Response::json("success", "Registro almacenado con éxito.", null, 201);
             }
         } catch (PDOException $e) {
@@ -55,22 +55,22 @@ class CatalogoController {
         }
     }
 
-    public function eliminar($tabla, $pk, $id) {
-        if ($this->model->eliminarLogico($tabla, $pk, $id)) {
+    public function eliminar($tabla, $pk, $id, $idUsuario) {
+        if ($this->model->eliminarLogico($tabla, $pk, $id, $idUsuario)) {
             Response::json("success", "Registro dado de baja correctamente.");
         } else {
             Response::json("error", "No se pudo eliminar el registro.", null, 400);
         }
     }
 
-    public function reactivar($tabla, $pk, $id) {
-        if ($this->model->reactivarLogico($tabla, $pk, $id)) {
+    public function reactivar($tabla, $pk, $id, $idUsuario) {
+        if ($this->model->reactivarLogico($tabla, $pk, $id, $idUsuario)) {
             Response::json("success", "Registro reactivado correctamente.");
         } else {
             Response::json("error", "No se pudo reactivar el registro.", null, 400);
         }
     }
-    public function actualizar($tabla, $pk, $id, $data) {
+    public function actualizar($tabla, $pk, $id, $data, $idUsuario) {
         if ($tabla === 'clientes') {
 
     $documento = $data['numero_documento'] ?? '';
@@ -90,7 +90,7 @@ class CatalogoController {
     $data['tipo_documento'] = strlen($documento) === 13 ? 'RUC' : 'CEDULA';
 }
     try {
-        if ($this->model->actualizar($tabla, $pk, $id, $data)) {
+        if ($this->model->actualizar($tabla, $pk, $id, $data, $idUsuario)) {
             Response::json("success", "Registro actualizado correctamente.", null, 200);
         }
     } catch (PDOException $e) {

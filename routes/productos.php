@@ -22,7 +22,7 @@ switch ($action) {
     case 'crear':
         if ($method === 'POST') {
             $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
-            $productoController->guardar($input_data);
+            $productoController->guardar($input_data, (int) $currentUser['id_usuario']);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
         }
@@ -32,7 +32,7 @@ switch ($action) {
         if ($method === 'PUT') {
             $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
             $id = $segments[2] ?? 0;
-            $productoController->actualizar($id, $input_data);
+            $productoController->actualizar($id, $input_data, (int) $currentUser['id_usuario']);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
         }
@@ -42,7 +42,7 @@ switch ($action) {
         if ($method === 'DELETE') {
             $auth->checkRole($currentUser, ['ADMIN']);
             $id = $segments[2] ?? 0;
-            $productoController->eliminar($id);
+            $productoController->eliminar($id, (int) $currentUser['id_usuario']);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
         }

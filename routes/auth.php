@@ -13,6 +13,16 @@ switch ($action) {
         }
         break;
 
+    case 'logout':
+        if ($method === 'POST') {
+            $auth = new AuthMiddleware();
+            $currentUser = $auth->checkAuth();
+            $authController->logout((int) $currentUser['id_usuario']);
+        } else {
+            Response::json("error", "Método no permitido.", null, 405);
+        }
+        break;
+
     default:
         Response::json("error", "Acción de autenticación no encontrada.", null, 404);
         break;

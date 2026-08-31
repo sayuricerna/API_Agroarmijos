@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../helpers/Auditor.php';
+
 class Producto {
     private $conn;
     private $table_name = "productos";
@@ -37,12 +39,12 @@ class Producto {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function create($data) {
-        $query = "INSERT INTO " . $this->table_name . " 
-                  (id_categoria, id_marca, id_ubicacion, codigo_interno, codigo_fabrica, codigo_barras, nombre, descripcion, modelo, unidad_medida, precio_compra, precio_venta, stock_minimo) 
-                  VALUES 
+    public function create($data, $id_usuario) {
+        $query = "INSERT INTO " . $this->table_name . "
+                  (id_categoria, id_marca, id_ubicacion, codigo_interno, codigo_fabrica, codigo_barras, nombre, descripcion, modelo, unidad_medida, precio_compra, precio_venta, stock_minimo)
+                  VALUES
                   (:id_categoria, :id_marca, :id_ubicacion, :codigo_interno, :codigo_fabrica, :codigo_barras, :nombre, :descripcion, :modelo, :unidad_medida, :precio_compra, :precio_venta, :stock_minimo)";
-        
+
         $stmt = $this->conn->prepare($query);
 
         $stmt->bindParam(":id_categoria", $data['id_categoria']);
@@ -59,7 +61,17 @@ class Producto {
         $stmt->bindParam(":precio_venta", $data['precio_venta']);
         $stmt->bindParam(":stock_minimo", $data['stock_minimo']);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+
+        if ($ok) {
+            $idProducto = (int) $this->conn->lastInsertId();
+            Auditor::registrarSeguro(
+                $this->conn, $id_usuario, 'Productos', 'productos', $idProducto, 'CREAR',
+                "Creó el producto \"{$data['nombre']}\" (código {$data['codigo_interno']})."
+            );
+        }
+
+        return $ok;
     }
 
     public function ajustarStock($id_producto, $id_tipo_movimiento, $id_usuario, $cantidad, $observacion) {
@@ -103,6 +115,13 @@ class Producto {
             $stmtSP->bindParam(":obs", $observacion);
             $stmtSP->execute();
 
+            // Auditoría (GCS — feature/auditoria-integracion): dentro de la
+            // misma transacción, mismo criterio que en Venta::crearVenta().
+            Auditor::registrar(
+                $this->conn, $id_usuario, 'Inventario', 'productos', (int) $id_producto, 'AJUSTAR',
+                "Ajustó el stock del producto #$id_producto: $stock_anterior → $stock_nuevo ($observacion)."
+            );
+
             $this->conn->commit();
             return true;
         } catch (Exception $e) {
@@ -110,7 +129,13 @@ class Producto {
             throw $e;
         }
     }
-    public function update($id, $data) {
+    public function update($id, $data, $id_usuario) {
+    $queryAntes = "SELECT * FROM " . $this->table_name . " WHERE id_producto = :id_producto";
+    $stmtAntes = $this->conn->prepare($queryAntes);
+    $stmtAntes->bindParam(":id_producto", $id);
+    $stmtAntes->execute();
+    $antes = $stmtAntes->fetch(PDO::FETCH_ASSOC) ?: [];
+
     $query = "UPDATE " . $this->table_name . "
               SET
                 id_categoria = :id_categoria,
@@ -146,10 +171,35 @@ class Producto {
     $stmt->bindParam(":stock_minimo", $data['stock_minimo']);
     $stmt->bindParam(":id_producto", $id);
 
-    return $stmt->execute();
+    $ok = $stmt->execute();
+
+    if ($ok) {
+        $despues = [
+            'id_categoria' => $data['id_categoria'],
+            'id_marca' => $data['id_marca'],
+            'id_ubicacion' => $data['id_ubicacion'],
+            'codigo_interno' => $data['codigo_interno'],
+            'codigo_fabrica' => $data['codigo_fabrica'],
+            'codigo_barras' => $data['codigo_barras'],
+            'nombre' => $data['nombre'],
+            'descripcion' => $data['descripcion'],
+            'modelo' => $data['modelo'],
+            'unidad_medida' => $data['unidad_medida'],
+            'precio_compra' => $data['precio_compra'],
+            'precio_venta' => $data['precio_venta'],
+            'stock_minimo' => $data['stock_minimo'],
+        ];
+        [$antesFiltrado, $despuesFiltrado] = Auditor::diferencias($antes, $despues);
+        Auditor::registrarSeguro(
+            $this->conn, $id_usuario, 'Productos', 'productos', (int) $id, 'EDITAR',
+            "Editó el producto \"{$data['nombre']}\".", $antesFiltrado, $despuesFiltrado
+        );
+    }
+
+    return $ok;
 }
 
-public function deleteLogic($id) {
+public function deleteLogic($id, $id_usuario) {
     $query = "UPDATE " . $this->table_name . "
               SET estado = 0
               WHERE id_producto = :id_producto";
@@ -157,6 +207,15 @@ public function deleteLogic($id) {
     $stmt = $this->conn->prepare($query);
     $stmt->bindParam(":id_producto", $id);
 
-    return $stmt->execute();
+    $ok = $stmt->execute();
+
+    if ($ok) {
+        Auditor::registrarSeguro(
+            $this->conn, $id_usuario, 'Productos', 'productos', (int) $id, 'DESACTIVAR',
+            "Dio de baja el producto #$id."
+        );
+    }
+
+    return $ok;
 }
 }

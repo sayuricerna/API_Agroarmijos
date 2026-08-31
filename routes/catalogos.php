@@ -52,7 +52,7 @@ switch ($action) {
             } else {
                 $auth->checkRole($currentUser, ['ADMIN', 'COMPRAS', 'BODEGA']);
             }
-            $controller->guardar($tabla, $input_data);
+            $controller->guardar($tabla, $input_data, (int) $currentUser['id_usuario']);
         }
         break;
 
@@ -60,7 +60,7 @@ switch ($action) {
         if ($method === 'DELETE') {
             $auth->checkRole($currentUser, ['ADMIN']);
             $id = isset($segments[2]) ? $segments[2] : 0;
-            $controller->eliminar($tabla, $pk, $id);
+            $controller->eliminar($tabla, $pk, $id, (int) $currentUser['id_usuario']);
         }
         break;
 
@@ -70,7 +70,7 @@ switch ($action) {
         if ($method === 'PUT') {
             $auth->checkRole($currentUser, ['ADMIN']);
             $id = isset($segments[2]) ? $segments[2] : 0;
-            $controller->reactivar($tabla, $pk, $id);
+            $controller->reactivar($tabla, $pk, $id, (int) $currentUser['id_usuario']);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
         }
@@ -84,7 +84,7 @@ switch ($action) {
         }
 
         $id = isset($segments[2]) ? $segments[2] : 0;
-        $controller->actualizar($tabla, $pk, $id, $input_data);
+        $controller->actualizar($tabla, $pk, $id, $input_data, (int) $currentUser['id_usuario']);
     } else {
         Response::json("error", "Método no permitido.", null, 405);
     }

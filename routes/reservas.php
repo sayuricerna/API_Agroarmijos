@@ -112,7 +112,7 @@ switch ($action) {
         );
 
         $idReserva = (int) ($segments[2] ?? 0);
-        $controller->confirmar($idReserva);
+        $controller->confirmar($idReserva, (int) $currentUser['id_usuario']);
         break;
 
     default:
