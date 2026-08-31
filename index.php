@@ -56,6 +56,7 @@ switch ($modulo) {
     case 'marcas':
     case 'proveedores':
     case 'clientes':
+    case 'ubicaciones':
         require_once __DIR__ . '/routes/catalogos.php';
         break;
     case 'usuarios':
