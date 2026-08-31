@@ -28,4 +28,23 @@ class VentaController {
         Response::json("error", $e->getMessage(), null, 500);
     }
 }
+
+    public function anular($idVenta, $idUsuario, $motivo) {
+        if (empty($idVenta) || $idVenta <= 0) {
+            Response::json("error", "ID de venta no válido.", null, 400);
+        }
+
+        $motivo = trim((string) $motivo);
+
+        if ($motivo === '') {
+            Response::json("error", "Debe indicar un motivo para anular la venta.", null, 400);
+        }
+
+        try {
+            $this->ventaModel->anular($idVenta, $idUsuario, $motivo);
+            Response::json("success", "Venta anulada y stock restituido.", null, 200);
+        } catch (Exception $e) {
+            Response::json("error", $e->getMessage(), null, 400);
+        }
+    }
 }

@@ -29,6 +29,16 @@ switch ($action) {
         }
         break;
 
+    case 'anular':
+        if ($method === 'PUT') {
+            $auth->checkRole($currentUser, ['ADMIN']);
+            $idVenta = (int) ($segments[2] ?? 0);
+            $ventaController->anular($idVenta, (int) $currentUser['id_usuario'], $input_data['motivo'] ?? '');
+        } else {
+            Response::json("error", "Método no permitido.", null, 405);
+        }
+        break;
+
     default:
         Response::json("error", "Endpoint de ventas no válido.", null, 404);
         break;

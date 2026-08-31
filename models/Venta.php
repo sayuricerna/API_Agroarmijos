@@ -163,6 +163,113 @@ class Venta {
             throw $e;
         }
     }
+    /*
+     * Anula una venta PAGADA: restituye el stock de cada línea, deja
+     * constancia en el Kárdex (tipo DEVOLUCION_VENTA, buscado por nombre
+     * en vez de "quemar" su ID — mismo criterio que el ajuste manual de
+     * Inventario) y marca la venta como ANULADA. Todo dentro de una sola
+     * transacción: si algo falla, no debe quedar stock devuelto sin la
+     * venta marcada como anulada, ni viceversa.
+     */
+    public function anular($idVenta, $idUsuario, $motivo) {
+        try {
+            $this->conn->beginTransaction();
+
+            $queryVenta = "SELECT estado, total FROM ventas WHERE id_venta = :id FOR UPDATE";
+            $stmtVenta = $this->conn->prepare($queryVenta);
+            $stmtVenta->bindParam(":id", $idVenta);
+            $stmtVenta->execute();
+            $venta = $stmtVenta->fetch(PDO::FETCH_ASSOC);
+
+            if (!$venta) {
+                throw new Exception("La venta no existe.");
+            }
+
+            if ($venta['estado'] === 'ANULADA') {
+                throw new Exception("Esta venta ya está anulada.");
+            }
+
+            if ($venta['estado'] !== 'PAGADA') {
+                throw new Exception("Solo se pueden anular ventas pagadas.");
+            }
+
+            $stmtTipo = $this->conn->prepare(
+                "SELECT id_tipo_movimiento FROM tipos_movimiento WHERE nombre = 'DEVOLUCION_VENTA'"
+            );
+            $stmtTipo->execute();
+            $idTipoDevolucion = $stmtTipo->fetchColumn();
+
+            if (!$idTipoDevolucion) {
+                throw new Exception("No se encontró el tipo de movimiento DEVOLUCION_VENTA.");
+            }
+
+            $queryDetalle = "SELECT id_producto, cantidad FROM detalle_ventas WHERE id_venta = :id_venta";
+            $stmtDetalle = $this->conn->prepare($queryDetalle);
+            $stmtDetalle->bindParam(":id_venta", $idVenta);
+            $stmtDetalle->execute();
+            $lineas = $stmtDetalle->fetchAll(PDO::FETCH_ASSOC);
+
+            foreach ($lineas as $linea) {
+                $idProducto = (int) $linea['id_producto'];
+                $cantidad = (float) $linea['cantidad'];
+
+                $qStock = "SELECT stock_actual FROM productos WHERE id_producto = :id FOR UPDATE";
+                $stStock = $this->conn->prepare($qStock);
+                $stStock->bindParam(":id", $idProducto);
+                $stStock->execute();
+                $producto = $stStock->fetch(PDO::FETCH_ASSOC);
+
+                $stockAnterior = $producto ? (float) $producto['stock_actual'] : 0;
+                $stockNuevo = $stockAnterior + $cantidad;
+
+                $qUpdate = "UPDATE productos SET stock_actual = :sn, stock_disponible = :sn - stock_reservado WHERE id_producto = :id";
+                $stUpdate = $this->conn->prepare($qUpdate);
+                $stUpdate->bindParam(":sn", $stockNuevo);
+                $stUpdate->bindParam(":id", $idProducto);
+                $stUpdate->execute();
+
+                $obsKardex = "Devolución por anulación de venta #$idVenta";
+
+                $qKardex = "CALL sp_registrar_movimiento(:id_prod, :tipo, :id_user, NULL, :id_venta, NULL, :cant, :ant, :nue, :obs)";
+                $stKardex = $this->conn->prepare($qKardex);
+                $stKardex->bindParam(":id_prod", $idProducto);
+                $stKardex->bindParam(":tipo", $idTipoDevolucion);
+                $stKardex->bindParam(":id_user", $idUsuario);
+                $stKardex->bindParam(":id_venta", $idVenta);
+                $stKardex->bindParam(":cant", $cantidad);
+                $stKardex->bindParam(":ant", $stockAnterior);
+                $stKardex->bindParam(":nue", $stockNuevo);
+                $stKardex->bindParam(":obs", $obsKardex);
+                $stKardex->execute();
+            }
+
+            $queryAnular = "UPDATE ventas SET estado = 'ANULADA' WHERE id_venta = :id";
+            $stmtAnular = $this->conn->prepare($queryAnular);
+            $stmtAnular->bindParam(":id", $idVenta);
+            $stmtAnular->execute();
+
+            // Auditoría (GCS — feature/ventas-anular): dentro de la misma
+            // transacción, mismo criterio que crearVenta().
+            Auditor::registrar(
+                $this->conn,
+                $idUsuario,
+                'Ventas',
+                'ventas',
+                (int) $idVenta,
+                'ANULAR',
+                "Anuló la venta #$idVenta por $" . number_format((float) $venta['total'], 2) . ". Motivo: $motivo.",
+                ['estado' => $venta['estado']],
+                ['estado' => 'ANULADA']
+            );
+
+            $this->conn->commit();
+            return true;
+        } catch (Exception $e) {
+            $this->conn->rollBack();
+            throw $e;
+        }
+    }
+
     public function listarVentas() {
     $query = "SELECT 
                 v.id_venta,
