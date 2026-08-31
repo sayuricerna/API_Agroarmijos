@@ -11,7 +11,8 @@ $primaryKeys = [
     'categorias' => 'id_categoria',
     'marcas' => 'id_marca',
     'clientes' => 'id_cliente',
-    'proveedores' => 'id_proveedor'
+    'proveedores' => 'id_proveedor',
+    'ubicaciones' => 'id_ubicacion'
 ];
 
 if (!isset($primaryKeys[$tabla])) {
@@ -24,6 +25,13 @@ $campo_orden = ($tabla === 'proveedores') ? 'razon_social' : 'nombre';
 
 if ($tabla === 'clientes' || $tabla === 'usuarios') {
     $campo_orden = 'nombres';
+}
+
+// ubicaciones no tiene columna "nombre": se ordena por su ubicación
+// física real (bodega/pasillo/estantería), igual que el índice que ya
+// tiene esa tabla en la base (idx_ubicacion).
+if ($tabla === 'ubicaciones') {
+    $campo_orden = 'bodega, pasillo, estanteria';
 }
 
 $action = isset($segments[1]) ? $segments[1] : '';

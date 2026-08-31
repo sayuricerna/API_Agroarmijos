@@ -53,7 +53,7 @@ class Catalogo {
 
         if ($ok) {
             $idNuevo = (int) $this->conn->lastInsertId();
-            $nombreRegistro = $datos['nombre'] ?? $datos['razon_social'] ?? ('#' . $idNuevo);
+            $nombreRegistro = $datos['nombre'] ?? $datos['razon_social'] ?? $datos['bodega'] ?? ('#' . $idNuevo);
             Auditor::registrarSeguro(
                 $this->conn, $idUsuario, ucfirst($tabla), $tabla, $idNuevo, 'CREAR',
                 "Creó el registro \"$nombreRegistro\" en $tabla."
@@ -92,7 +92,7 @@ class Catalogo {
 
     if ($ok) {
         [$antesFiltrado, $despuesFiltrado] = Auditor::diferencias($antes, $datos);
-        $nombreRegistro = $datos['nombre'] ?? $datos['razon_social'] ?? ('#' . $id);
+        $nombreRegistro = $datos['nombre'] ?? $datos['razon_social'] ?? $datos['bodega'] ?? ('#' . $id);
         Auditor::registrarSeguro(
             $this->conn, $idUsuario, ucfirst($tabla), $tabla, (int) $id, 'EDITAR',
             "Editó el registro \"$nombreRegistro\" en $tabla.", $antesFiltrado, $despuesFiltrado
