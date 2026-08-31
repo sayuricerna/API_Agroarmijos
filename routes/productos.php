@@ -48,6 +48,15 @@ switch ($action) {
         }
         break;
 
+    case 'ajustar':
+        if ($method === 'POST') {
+            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+            $productoController->procesarAjuste($input_data, (int) $currentUser['id_usuario']);
+        } else {
+            Response::json("error", "Método no permitido.", null, 405);
+        }
+        break;
+
     default:
         Response::json("error", "Endpoint de productos no válido.", null, 404);
         break;
