@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../helpers/Auditor.php';
+
 class Compra {
     private $conn;
 
@@ -63,6 +65,18 @@ class Compra {
                 $stKardex->bindParam(":nue", $stock_nuevo);
                 $stKardex->execute();
             }
+
+            // Auditoría (GCS — feature/auditoria-integracion): dentro de la
+            // misma transacción, mismo criterio que en Venta::crearVenta().
+            Auditor::registrar(
+                $this->conn,
+                $id_usuario,
+                'Compras',
+                'compras',
+                $id_compra,
+                'REGISTRAR',
+                "Registró la compra #$id_compra (factura {$data['numero_factura']}) por $" . number_format((float) $data['total'], 2) . "."
+            );
 
             $this->conn->commit();
             return $id_compra;

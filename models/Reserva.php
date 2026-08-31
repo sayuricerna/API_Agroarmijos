@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../helpers/Auditor.php';
 
 class Reserva {
     private PDO $conn;
@@ -208,6 +209,13 @@ class Reserva {
                 $stmtKardex->execute();
             }
 
+            // Auditoría (GCS — feature/auditoria-integracion): dentro de la
+            // misma transacción, mismo criterio que en Venta::crearVenta().
+            Auditor::registrar(
+                $this->conn, $idUsuario, 'Reservas', 'reservas', $idReserva, 'REGISTRAR',
+                "Registró la reserva #$idReserva."
+            );
+
             $this->conn->commit();
 
             return $idReserva;
@@ -319,6 +327,13 @@ class Reserva {
             );
             $stmtCancelar->execute();
 
+            // Auditoría (GCS — feature/auditoria-integracion): dentro de la
+            // misma transacción, mismo criterio que en Venta::crearVenta().
+            Auditor::registrar(
+                $this->conn, $idUsuario, 'Reservas', 'reservas', $idReserva, 'CANCELAR',
+                "Canceló la reserva #$idReserva."
+            );
+
             $this->conn->commit();
 
             return true;
@@ -332,7 +347,7 @@ class Reserva {
         }
     }
 
-    public function confirmar(int $idReserva): bool {
+    public function confirmar(int $idReserva, int $idUsuario): bool {
         $query = "UPDATE reservas
                   SET estado = 'CONFIRMADA'
                   WHERE id_reserva = :id_reserva
@@ -346,6 +361,15 @@ class Reserva {
         );
         $stmt->execute();
 
-        return $stmt->rowCount() > 0;
+        $ok = $stmt->rowCount() > 0;
+
+        if ($ok) {
+            Auditor::registrarSeguro(
+                $this->conn, $idUsuario, 'Reservas', 'reservas', $idReserva, 'CONFIRMAR',
+                "Confirmó la reserva #$idReserva."
+            );
+        }
+
+        return $ok;
     }
 }

@@ -15,7 +15,7 @@ class UsuarioController {
         Response::json("success", "Usuarios cargados correctamente.", $data);
     }
 
-    public function crear($data) {
+    public function crear($data, $idActor) {
         if (empty($data['id_rol']) || empty($data['nombres']) || empty($data['apellidos']) || empty($data['usuario']) || empty($data['password'])) {
             Response::json("error", "Faltan campos obligatorios.", null, 400);
         }
@@ -26,7 +26,7 @@ class UsuarioController {
             $data['correo'] = $data['correo'] ?? '';
             $data['foto'] = $data['foto'] ?? '';
 
-            $this->model->crear($data);
+            $this->model->crear($data, $idActor);
             Response::json("success", "Usuario registrado correctamente.", null, 201);
 
         } catch (PDOException $e) {
@@ -38,7 +38,7 @@ class UsuarioController {
         }
     }
 
-    public function actualizar($id, $data) {
+    public function actualizar($id, $data, $idActor) {
         if (empty($id)) {
             Response::json("error", "ID no recibido.", null, 400);
         }
@@ -53,7 +53,7 @@ class UsuarioController {
             $data['correo'] = $data['correo'] ?? '';
             $data['foto'] = $data['foto'] ?? '';
 
-            $this->model->actualizar($id, $data);
+            $this->model->actualizar($id, $data, $idActor);
             Response::json("success", "Usuario actualizado correctamente.", null, 200);
 
         } catch (PDOException $e) {
@@ -65,17 +65,17 @@ class UsuarioController {
         }
     }
 
-    public function cambiarEstado($id, $estado) {
-        $this->model->cambiarEstado($id, $estado);
+    public function cambiarEstado($id, $estado, $idActor) {
+        $this->model->cambiarEstado($id, $estado, $idActor);
         Response::json("success", "Estado actualizado correctamente.", null, 200);
     }
 
-    public function cambiarPassword($id, $password) {
+    public function cambiarPassword($id, $password, $idActor) {
         if (empty($password) || strlen($password) < 4) {
             Response::json("error", "La contraseña debe tener mínimo 4 caracteres.", null, 400);
         }
 
-        $this->model->cambiarPassword($id, $password);
+        $this->model->cambiarPassword($id, $password, $idActor);
         Response::json("success", "Contraseña actualizada correctamente.", null, 200);
     }
 }

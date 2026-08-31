@@ -2,6 +2,7 @@
 require_once __DIR__ . '/../models/Usuario.php';
 require_once __DIR__ . '/../config/Jwt.php';
 require_once __DIR__ . '/../helpers/Response.php';
+require_once __DIR__ . '/../helpers/Auditor.php';
 
 class AuthController {
     private $db;
@@ -38,6 +39,11 @@ class AuthController {
                 $user['rol_nombre']
             );
 
+            Auditor::registrarSeguro(
+                $this->db, $user['id_usuario'], 'Autenticación', 'usuarios', (int) $user['id_usuario'], 'INICIAR_SESION',
+                "Inició sesión como \"{$user['usuario']}\"."
+            );
+
             Response::json("success", "Autenticación correcta.", [
                 "token" => $token,
                 "usuario" => [
@@ -51,5 +57,13 @@ class AuthController {
         } else {
             Response::json("error", "Usuario o contraseña incorrectos.", null, 401);
         }
+    }
+
+    public function logout($id_usuario) {
+        Auditor::registrarSeguro(
+            $this->db, $id_usuario, 'Autenticación', 'usuarios', (int) $id_usuario, 'CERRAR_SESION',
+            "Cerró sesión."
+        );
+        Response::json("success", "Sesión cerrada.", null, 200);
     }
 }

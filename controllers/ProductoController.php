@@ -22,7 +22,7 @@ class ProductoController {
         Response::json("success", "Productos recuperados correctamente.", $resultado);
     }
 
-    public function guardar($data) {
+    public function guardar($data, $id_usuario) {
         if (
             empty($data['nombre']) ||
             empty($data['codigo_interno']) ||
@@ -35,7 +35,7 @@ class ProductoController {
         }
 
         try {
-            if ($this->productoModel->create($data)) {
+            if ($this->productoModel->create($data, $id_usuario)) {
                 Response::json("success", "Producto registrado de manera exitosa.", null, 201);
             }
         } catch (PDOException $e) {
@@ -49,7 +49,7 @@ class ProductoController {
         }
     }
 
-    public function actualizar($id, $data) {
+    public function actualizar($id, $data, $id_usuario) {
         if (empty($id)) {
             Response::json("error", "ID de producto no recibido.", null, 400);
         }
@@ -66,7 +66,7 @@ class ProductoController {
         }
 
         try {
-            if ($this->productoModel->update($id, $data)) {
+            if ($this->productoModel->update($id, $data, $id_usuario)) {
                 Response::json("success", "Producto actualizado correctamente.", null, 200);
             }
         } catch (PDOException $e) {
@@ -80,13 +80,13 @@ class ProductoController {
         }
     }
 
-    public function eliminar($id) {
+    public function eliminar($id, $id_usuario) {
         if (empty($id)) {
             Response::json("error", "ID de producto no recibido.", null, 400);
         }
 
         try {
-            if ($this->productoModel->deleteLogic($id)) {
+            if ($this->productoModel->deleteLogic($id, $id_usuario)) {
                 Response::json("success", "Producto dado de baja correctamente.", null, 200);
             }
         } catch (Exception $e) {

@@ -1,4 +1,5 @@
 <?php
+require_once __DIR__ . '/../helpers/Auditor.php';
 
 class Usuario {
     private $conn;
@@ -54,7 +55,7 @@ class Usuario {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function crear($data) {
+    public function crear($data, $idActor) {
         $query = "INSERT INTO usuarios
                   (id_rol, cedula, nombres, apellidos, telefono, correo, usuario, password, foto, estado)
                   VALUES
@@ -73,10 +74,26 @@ class Usuario {
         $stmt->bindParam(":password", $hash);
         $stmt->bindParam(":foto", $data['foto']);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+
+        if ($ok) {
+            $idNuevo = (int) $this->conn->lastInsertId();
+            Auditor::registrarSeguro(
+                $this->conn, $idActor, 'Usuarios', 'usuarios', $idNuevo, 'CREAR',
+                "Creó el usuario \"{$data['usuario']}\"."
+            );
+        }
+
+        return $ok;
     }
 
-    public function actualizar($id, $data) {
+    public function actualizar($id, $data, $idActor) {
+        $queryAntes = "SELECT * FROM usuarios WHERE id_usuario = :id_usuario";
+        $stmtAntes = $this->conn->prepare($queryAntes);
+        $stmtAntes->bindParam(":id_usuario", $id);
+        $stmtAntes->execute();
+        $antes = $stmtAntes->fetch(PDO::FETCH_ASSOC) ?: [];
+
         $query = "UPDATE usuarios SET
                     id_rol = :id_rol,
                     cedula = :cedula,
@@ -99,20 +116,49 @@ class Usuario {
         $stmt->bindParam(":foto", $data['foto']);
         $stmt->bindParam(":id_usuario", $id);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+
+        if ($ok) {
+            $despues = [
+                'id_rol' => $data['id_rol'],
+                'cedula' => $data['cedula'],
+                'nombres' => $data['nombres'],
+                'apellidos' => $data['apellidos'],
+                'telefono' => $data['telefono'],
+                'correo' => $data['correo'],
+                'usuario' => $data['usuario'],
+                'foto' => $data['foto'],
+            ];
+            [$antesFiltrado, $despuesFiltrado] = Auditor::diferencias($antes, $despues);
+            Auditor::registrarSeguro(
+                $this->conn, $idActor, 'Usuarios', 'usuarios', (int) $id, 'EDITAR',
+                "Editó el usuario \"{$data['usuario']}\".", $antesFiltrado, $despuesFiltrado
+            );
+        }
+
+        return $ok;
     }
 
-    public function cambiarEstado($id, $estado) {
+    public function cambiarEstado($id, $estado, $idActor) {
         $query = "UPDATE usuarios SET estado = :estado WHERE id_usuario = :id_usuario";
 
         $stmt = $this->conn->prepare($query);
         $stmt->bindParam(":estado", $estado);
         $stmt->bindParam(":id_usuario", $id);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+
+        if ($ok) {
+            Auditor::registrarSeguro(
+                $this->conn, $idActor, 'Usuarios', 'usuarios', (int) $id, $estado ? 'ACTIVAR' : 'DESACTIVAR',
+                "Cambió el estado del usuario #$id a " . ($estado ? 'activo' : 'inactivo') . "."
+            );
+        }
+
+        return $ok;
     }
 
-    public function cambiarPassword($id, $password) {
+    public function cambiarPassword($id, $password, $idActor) {
         $query = "UPDATE usuarios SET password = :password WHERE id_usuario = :id_usuario";
 
         $hash = password_hash($password, PASSWORD_BCRYPT);
@@ -121,6 +167,15 @@ class Usuario {
         $stmt->bindParam(":password", $hash);
         $stmt->bindParam(":id_usuario", $id);
 
-        return $stmt->execute();
+        $ok = $stmt->execute();
+
+        if ($ok) {
+            Auditor::registrarSeguro(
+                $this->conn, $idActor, 'Usuarios', 'usuarios', (int) $id, 'EDITAR',
+                "Cambió la contraseña del usuario #$id."
+            );
+        }
+
+        return $ok;
     }
 }

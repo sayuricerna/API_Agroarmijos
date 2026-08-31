@@ -1,4 +1,6 @@
 <?php
+require_once __DIR__ . '/../helpers/Auditor.php';
+
 class Venta {
     private $conn;
 
@@ -134,6 +136,25 @@ class Venta {
                 $stKardex->bindParam(":nue", $linea['stock_nuevo']);
                 $stKardex->execute();
             }
+
+            // Auditoría (GCS — feature/auditoria-integracion): se registra
+            // DENTRO de la misma transacción con Auditor::registrar() (no
+            // "registrarSeguro"), a propósito: si por algún motivo no se
+            // pudiera dejar constancia de la venta, es preferible que toda
+            // la operación haga rollback a que quede una venta sin rastro
+            // de auditoría. Usa $subtotal_general/$total_general (los
+            // calculados en el backend, no los que mandó el frontend) y
+            // count($lineas), no $data['productos'], para reflejar
+            // exactamente lo que de verdad se guardó.
+            Auditor::registrar(
+                $this->conn,
+                $id_usuario,
+                'Ventas',
+                'ventas',
+                $id_venta,
+                'REGISTRAR',
+                "Registró la venta #$id_venta por $" . number_format($total_general, 2) . " (" . count($lineas) . " producto(s))."
+            );
 
             $this->conn->commit();
             return $id_venta;

@@ -109,7 +109,7 @@ class ReservaController {
         }
     }
 
-    public function confirmar(int $idReserva): void {
+    public function confirmar(int $idReserva, int $idUsuario): void {
         if ($idReserva <= 0) {
             Response::json(
                 "error",
@@ -119,7 +119,7 @@ class ReservaController {
             );
         }
 
-        if (!$this->model->confirmar($idReserva)) {
+        if (!$this->model->confirmar($idReserva, $idUsuario)) {
             Response::json(
                 "error",
                 "La reserva no existe o ya fue procesada.",
