@@ -243,8 +243,9 @@ class Venta {
                 $stKardex->execute();
             }
 
-            $queryAnular = "UPDATE ventas SET estado = 'ANULADA' WHERE id_venta = :id";
+            $queryAnular = "UPDATE ventas SET estado = 'ANULADA', motivo_anulacion = :motivo WHERE id_venta = :id";
             $stmtAnular = $this->conn->prepare($queryAnular);
+            $stmtAnular->bindParam(":motivo", $motivo);
             $stmtAnular->bindParam(":id", $idVenta);
             $stmtAnular->execute();
 
@@ -280,6 +281,7 @@ class Venta {
                 v.total,
                 v.estado,
                 v.observacion,
+                v.motivo_anulacion,
                 c.nombres AS cliente,
                 u.nombres AS vendedor
               FROM ventas v
