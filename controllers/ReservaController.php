@@ -135,4 +135,33 @@ class ReservaController {
             200
         );
     }
+
+    public function convertir(int $idReserva, int $idUsuario): void {
+        if ($idReserva <= 0) {
+            Response::json(
+                "error",
+                "ID de reserva no válido.",
+                null,
+                400
+            );
+        }
+
+        try {
+            $idVenta = $this->model->convertirEnVenta($idReserva, $idUsuario);
+
+            Response::json(
+                "success",
+                "Reserva convertida en venta correctamente.",
+                ["id_venta" => $idVenta],
+                201
+            );
+        } catch (Throwable $e) {
+            Response::json(
+                "error",
+                $e->getMessage(),
+                null,
+                400
+            );
+        }
+    }
 }
