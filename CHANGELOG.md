@@ -6,6 +6,11 @@ Cada entrada referencia también el tag académico `LB-XXX` correspondiente (hit
 
 ## [No liberado]
 
+_Sin cambios pendientes de liberar._
+
+---
+
+## [1.6.0] - 2026-09-01 — `LB-011`
 ### Added
 - `Reserva::expirarVencidas()`: expira automáticamente (perezoso, sin cron) las reservas `PENDIENTE` cuya `fecha_expiracion` ya pasó, liberando el stock apartado.
 - `Reserva::convertirEnVenta()` + endpoint `PUT /reservas/convertir/:id`: convierte una reserva `CONFIRMADA` en una venta real, enlazando `reservas.id_venta`.
@@ -13,8 +18,6 @@ Cada entrada referencia también el tag académico `LB-XXX` correspondiente (hit
 
 ### Fixed
 - `Venta::crearVenta()` ahora valida el stock contra `stock_disponible` (no `stock_actual`), respetando unidades ya apartadas por una reserva.
-
----
 
 ## [1.5.1] - 2026-08-31 — `LB-010`
 ### Fixed
