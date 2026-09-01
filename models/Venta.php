@@ -1,5 +1,6 @@
 <?php
 require_once __DIR__ . '/../helpers/Auditor.php';
+require_once __DIR__ . '/Reserva.php';
 
 class Venta {
     private $conn;
@@ -9,6 +10,11 @@ class Venta {
     }
 
     public function crearVenta($data, $id_usuario) {
+        // Se expiran las reservas vencidas antes de abrir la transacción
+        // de la venta, para liberar stock que ya no debería seguir
+        // apartado por una reserva fantasma.
+        (new Reserva($this->conn))->expirarVencidas($id_usuario);
+
         try {
             $this->conn->beginTransaction();
 
@@ -33,7 +39,7 @@ class Venta {
             foreach ($data['productos'] as $prod) {
                 // Bloqueo de fila para control de concurrencia — ahora también
                 // trae el precio_venta real, no solo el stock.
-                $qStock = "SELECT stock_actual, precio_venta FROM productos WHERE id_producto = :id FOR UPDATE";
+                $qStock = "SELECT stock_actual, stock_disponible, precio_venta FROM productos WHERE id_producto = :id FOR UPDATE";
                 $stStock = $this->conn->prepare($qStock);
                 $stStock->bindParam(":id", $prod['id_producto']);
                 $stStock->execute();
@@ -43,8 +49,11 @@ class Venta {
                     throw new Exception("Producto ID " . $prod['id_producto'] . " no existe o no está disponible.");
                 }
 
-                if ($pActual['stock_actual'] < $prod['cantidad']) {
-                    throw new Exception("Stock insuficiente para el producto ID: " . $prod['id_producto']);
+                // Se valida contra stock_disponible en lugar de stock_actual,
+                // para no vender unidades ya apartadas por una reserva
+                // pendiente o confirmada.
+                if ($pActual['stock_disponible'] < $prod['cantidad']) {
+                    throw new Exception("Stock insuficiente para el producto ID: " . $prod['id_producto'] . " (disponible: " . $pActual['stock_disponible'] . ", hay unidades reservadas).");
                 }
 
                 $stock_anterior = $pActual['stock_actual'];

@@ -115,6 +115,31 @@ switch ($action) {
         $controller->confirmar($idReserva, (int) $currentUser['id_usuario']);
         break;
 
+    case 'convertir':
+        if ($method !== 'PUT') {
+            Response::json(
+                "error",
+                "Método no permitido.",
+                null,
+                405
+            );
+        }
+
+        $auth->checkRole(
+            $currentUser,
+            [
+                'ADMIN',
+                'Administrador',
+                'administrador',
+                'VENDEDOR',
+                'vendedor'
+            ]
+        );
+
+        $idReserva = (int) ($segments[2] ?? 0);
+        $controller->convertir($idReserva, (int) $currentUser['id_usuario']);
+        break;
+
     default:
         Response::json(
             "error",
