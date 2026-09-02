@@ -16,7 +16,11 @@ class Movimiento {
      * traducen para la presentación. Si en el futuro se agrega un tipo nuevo
      * y no está en este mapa, enriquecerTipo() usa un fallback defensivo.
      */
-    private static function mapaTipos() {
+    // Antes era private: Reporte::kardexPorFecha() necesita el mismo mapa
+    // (mismos textos "Salida por venta", etc.) para el reporte exportable
+    // del Kárdex, y duplicarlo en dos archivos habría sido una fuente
+    // segura de que un día queden desincronizados.
+    public static function mapaTipos() {
         return [
             'COMPRA'               => ['general' => 'ENTRADA', 'etiqueta' => 'Entrada por compra'],
             'VENTA'                 => ['general' => 'SALIDA',  'etiqueta' => 'Salida por venta'],
