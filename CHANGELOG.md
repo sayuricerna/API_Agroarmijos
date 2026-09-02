@@ -10,6 +10,17 @@ _Sin cambios pendientes de liberar._
 
 ---
 
+## [1.7.0] - 2026-09-02 — `LB-013`
+### Added
+- Reporte de productos más/menos vendidos (`GET /reportes/productos`): ranking por unidades vendidas en el rango de fechas.
+- Reporte de clientes (`GET /reportes/clientes`): ranking por monto comprado, con cantidad de compras y última compra.
+- Reporte de proveedores (`GET /reportes/proveedores`): mismo criterio que clientes, del lado de compras.
+- Reporte de Kárdex/movimientos exportable (`GET /reportes/kardex`): histórico completo de `movimientos` en el rango de fechas, con `tipo_etiqueta`/`tipo_general` resueltos vía `Movimiento::mapaTipos()`.
+- Los 4 endpoints nuevos quedan restringidos a roles `ADMIN`/`GERENTE`, igual que `compras`/`stock-critico`.
+
+### Changed
+- `Movimiento::mapaTipos()` pasa de `private` a `public static` para que `Reporte::kardexPorFecha()` reutilice el mismo mapa de etiquetas que ya usa Movimientos, evitando duplicarlo.
+
 ## [1.6.0] - 2026-09-01 — `LB-011`
 ### Added
 - `Reserva::expirarVencidas()`: expira automáticamente (perezoso, sin cron) las reservas `PENDIENTE` cuya `fecha_expiracion` ya pasó, liberando el stock apartado.
