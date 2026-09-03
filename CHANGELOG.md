@@ -10,6 +10,13 @@ _Sin cambios pendientes de liberar._
 
 ---
 
+## [1.8.0] - 2026-09-03 — `LB-019`
+### Added
+- Endpoint `GET /dashboard/ventas-periodo?periodo=semana|mes|anio`: serie de ventas para el selector de periodo del gráfico del Dashboard (semana = últimos 7 días, mes = últimos 12 meses, año = últimos 5 años), completando con 0 los periodos sin ventas. No modifica el endpoint `/dashboard/kpis` existente.
+
+### Fixed
+- Conteo de "Stock bajo" en `/dashboard/kpis`: antes incluía también los productos agotados (`stock_actual = 0`), mezclándolos con los de stock bajo — ahora los excluye, igual que ya lo hace la pantalla de Productos, para que ambos módulos cuenten lo mismo.
+
 ## [1.7.0] - 2026-09-02 — `LB-013`
 ### Added
 - Reporte de productos más/menos vendidos (`GET /reportes/productos`): ranking por unidades vendidas en el rango de fechas.
