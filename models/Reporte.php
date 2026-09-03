@@ -63,10 +63,11 @@ class Reporte {
 
     /*
      * Productos cuyo stock_actual ya llegó o cayó por debajo de su
-     * stock_minimo configurado. Mismo criterio que ya usa el Dashboard
-     * para la alerta "Stock bajo" (Dashboard::obtenerKPIs()), aquí como
-     * reporte exportable e independiente de un rango de fechas: es una
-     * fotografía del estado actual del inventario, no un histórico.
+     * stock_minimo configurado (incluye tanto stock bajo como agotado
+     * en 0 — a diferencia de la alerta "Stock bajo" del Dashboard, que
+     * desde LB-019 separa ambas categorías, este reporte las junta a
+     * propósito: es una lista de "todo lo que necesita reposición",
+     * fotografía del estado actual del inventario, no un histórico).
      */
     public function stockCritico() {
         $query = "SELECT
