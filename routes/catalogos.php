@@ -58,7 +58,12 @@ switch ($action) {
             if ($tabla === 'clientes') {
                 $auth->checkRole($currentUser, ['ADMIN', 'VENDEDOR']);
             } else {
-                $auth->checkRole($currentUser, ['ADMIN', 'COMPRAS', 'BODEGA']);
+                // FIX (GCS — fix/catalogos-rol-compras-inexistente): el rol
+                // 'COMPRAS' no existe en la tabla roles (solo ADMIN,
+                // VENDEDOR, BODEGA, GERENTE), así que este checkRole nunca
+                // dejaba pasar a nadie salvo ADMIN. Se corrige a BODEGA,
+                // igual que ya se hizo en routes/compras.php.
+                $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
             }
             $controller->guardar($tabla, $input_data, (int) $currentUser['id_usuario']);
         }
@@ -88,7 +93,8 @@ switch ($action) {
         if ($tabla === 'clientes') {
             $auth->checkRole($currentUser, ['ADMIN', 'VENDEDOR']);
         } else {
-            $auth->checkRole($currentUser, ['ADMIN', 'COMPRAS', 'BODEGA']);
+            // Mismo fix que en 'crear': 'COMPRAS' no es un rol real.
+            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
         }
 
         $id = isset($segments[2]) ? $segments[2] : 0;
