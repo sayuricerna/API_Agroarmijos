@@ -9,6 +9,10 @@ Cada entrada referencia también el tag académico `LB-XXX` correspondiente (hit
 _Sin cambios pendientes de liberar._
 
 ---
+## [1.9.2] - 2026-09-04 — `LB-026`
+### Fixed
+- Rol `COMPRAS` inexistente en `catalogos.php`: las operaciones "crear" y "actualizar" de categorias, marcas, proveedores y ubicaciones exigian ese rol, que no existe en la tabla `roles` (solo ADMIN, VENDEDOR, BODEGA, GERENTE), asi que ningun usuario BODEGA podia pasar ese chequeo. Se corrige a BODEGA, igual que ya estaba en `routes/compras.php`.
+
 ## [1.9.1] - 2026-09-04 — `LB-023`
 ### Fixed
 - "Modulo con mas actividad" en el resumen de Auditoria: Autenticacion (registro de inicios de sesion) ya no se cuenta en ese calculo, porque no es un modulo de negocio y siempre terminaba ganando sin decir nada util. Sigue apareciendo normal en el listado y en el filtro de modulos.
