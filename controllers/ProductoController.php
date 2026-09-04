@@ -34,6 +34,13 @@ class ProductoController {
             Response::json("error", "Faltan campos obligatorios para registrar el producto.", null, 400);
         }
 
+        // FEATURE (GCS — feature/iva-por-producto): la tarifa es opcional
+        // en el payload (por defecto 15%, ver Producto::create()), pero si
+        // viene debe ser un porcentaje válido.
+        if (isset($data['iva_tarifa']) && $data['iva_tarifa'] !== '' && (!is_numeric($data['iva_tarifa']) || $data['iva_tarifa'] < 0 || $data['iva_tarifa'] > 100)) {
+            Response::json("error", "La tarifa de IVA debe ser un porcentaje entre 0 y 100.", null, 400);
+        }
+
         try {
             if ($this->productoModel->create($data, $id_usuario)) {
                 Response::json("success", "Producto registrado de manera exitosa.", null, 201);
@@ -63,6 +70,11 @@ class ProductoController {
             empty($data['id_ubicacion'])
         ) {
             Response::json("error", "Faltan campos obligatorios para actualizar el producto.", null, 400);
+        }
+
+        // FEATURE (GCS — feature/iva-por-producto): ver comentario en guardar().
+        if (isset($data['iva_tarifa']) && $data['iva_tarifa'] !== '' && (!is_numeric($data['iva_tarifa']) || $data['iva_tarifa'] < 0 || $data['iva_tarifa'] > 100)) {
+            Response::json("error", "La tarifa de IVA debe ser un porcentaje entre 0 y 100.", null, 400);
         }
 
         try {

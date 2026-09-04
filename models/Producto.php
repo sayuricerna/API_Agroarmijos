@@ -41,11 +41,17 @@ class Producto {
 
     public function create($data, $id_usuario) {
         $query = "INSERT INTO " . $this->table_name . "
-                  (id_categoria, id_marca, id_ubicacion, codigo_interno, codigo_fabrica, codigo_barras, nombre, descripcion, modelo, unidad_medida, precio_compra, precio_venta, stock_minimo)
+                  (id_categoria, id_marca, id_ubicacion, codigo_interno, codigo_fabrica, codigo_barras, nombre, descripcion, modelo, unidad_medida, precio_compra, precio_venta, iva_tarifa, stock_minimo)
                   VALUES
-                  (:id_categoria, :id_marca, :id_ubicacion, :codigo_interno, :codigo_fabrica, :codigo_barras, :nombre, :descripcion, :modelo, :unidad_medida, :precio_compra, :precio_venta, :stock_minimo)";
+                  (:id_categoria, :id_marca, :id_ubicacion, :codigo_interno, :codigo_fabrica, :codigo_barras, :nombre, :descripcion, :modelo, :unidad_medida, :precio_compra, :precio_venta, :iva_tarifa, :stock_minimo)";
 
         $stmt = $this->conn->prepare($query);
+
+        // FEATURE (GCS — feature/iva-por-producto): tarifa de IVA propia
+        // de este producto (0/5/15/otro), en vez de asumir 15% fijo en
+        // Compras y Ventas. Si no viene en el payload, se usa 15% (mismo
+        // comportamiento que tenía toda la app antes de este cambio).
+        $iva_tarifa = isset($data['iva_tarifa']) && $data['iva_tarifa'] !== '' ? (float) $data['iva_tarifa'] : 15.0;
 
         $stmt->bindParam(":id_categoria", $data['id_categoria']);
         $stmt->bindParam(":id_marca", $data['id_marca']);
@@ -59,6 +65,7 @@ class Producto {
         $stmt->bindParam(":unidad_medida", $data['unidad_medida']);
         $stmt->bindParam(":precio_compra", $data['precio_compra']);
         $stmt->bindParam(":precio_venta", $data['precio_venta']);
+        $stmt->bindParam(":iva_tarifa", $iva_tarifa);
         $stmt->bindParam(":stock_minimo", $data['stock_minimo']);
 
         $ok = $stmt->execute();
@@ -163,11 +170,15 @@ class Producto {
                 unidad_medida = :unidad_medida,
                 precio_compra = :precio_compra,
                 precio_venta = :precio_venta,
+                iva_tarifa = :iva_tarifa,
                 stock_minimo = :stock_minimo,
                 version = version + 1
               WHERE id_producto = :id_producto";
 
     $stmt = $this->conn->prepare($query);
+
+    // FEATURE (GCS — feature/iva-por-producto): ver comentario en create().
+    $iva_tarifa = isset($data['iva_tarifa']) && $data['iva_tarifa'] !== '' ? (float) $data['iva_tarifa'] : 15.0;
 
     $stmt->bindParam(":id_categoria", $data['id_categoria']);
     $stmt->bindParam(":id_marca", $data['id_marca']);
@@ -181,6 +192,7 @@ class Producto {
     $stmt->bindParam(":unidad_medida", $data['unidad_medida']);
     $stmt->bindParam(":precio_compra", $data['precio_compra']);
     $stmt->bindParam(":precio_venta", $data['precio_venta']);
+    $stmt->bindParam(":iva_tarifa", $iva_tarifa);
     $stmt->bindParam(":stock_minimo", $data['stock_minimo']);
     $stmt->bindParam(":id_producto", $id);
 
@@ -200,6 +212,7 @@ class Producto {
             'unidad_medida' => $data['unidad_medida'],
             'precio_compra' => $data['precio_compra'],
             'precio_venta' => $data['precio_venta'],
+            'iva_tarifa' => $iva_tarifa,
             'stock_minimo' => $data['stock_minimo'],
         ];
         [$antesFiltrado, $despuesFiltrado] = Auditor::diferencias($antes, $despues);
