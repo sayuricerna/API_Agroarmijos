@@ -98,7 +98,21 @@ class Auditoria {
         $stmtUsuarios->execute();
         $usuariosActivos = (int) $stmtUsuarios->fetch(PDO::FETCH_ASSOC)['total'];
 
-        $stmtModulo = $this->conn->prepare("SELECT a.modulo, COUNT(*) AS cantidad $baseFrom GROUP BY a.modulo ORDER BY cantidad DESC LIMIT 1");
+        /*
+         * FIX (GCS): "Autenticación" no es un módulo de negocio (Productos,
+         * Compras, Ventas...), es el registro de inicios de sesión — y como
+         * cada inicio de sesión genera una fila, casi siempre termina
+         * "ganando" este resumen sin decir nada útil sobre qué módulo se
+         * usa más. Se excluye solo de este cálculo puntual (sigue
+         * apareciendo normal en el listado y en el filtro de módulos).
+         */
+        $condicionesModulo = $where ? $where . " AND a.modulo != 'Autenticación'" : "WHERE a.modulo != 'Autenticación'";
+        $stmtModulo = $this->conn->prepare("SELECT a.modulo, COUNT(*) AS cantidad
+                                             FROM auditoria a
+                                             INNER JOIN usuarios u ON a.id_usuario = u.id_usuario
+                                             INNER JOIN roles r ON u.id_rol = r.id_rol
+                                             $condicionesModulo
+                                             GROUP BY a.modulo ORDER BY cantidad DESC LIMIT 1");
         foreach ($params as $key => $value) {
             $stmtModulo->bindValue($key, $value);
         }
