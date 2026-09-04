@@ -9,6 +9,10 @@ Cada entrada referencia también el tag académico `LB-XXX` correspondiente (hit
 _Sin cambios pendientes de liberar._
 
 ---
+## [1.9.1] - 2026-09-04 — `LB-023`
+### Fixed
+- "Modulo con mas actividad" en el resumen de Auditoria: Autenticacion (registro de inicios de sesion) ya no se cuenta en ese calculo, porque no es un modulo de negocio y siempre terminaba ganando sin decir nada util. Sigue apareciendo normal en el listado y en el filtro de modulos.
+
 ## [1.9.0] - 2026-09-04 — `LB-022`
 ### Added
 - Tarifa de IVA por producto (`iva_tarifa`): antes el 15% estaba fijo en el codigo, ahora es una propiedad del producto (por defecto 15%, editable entre 0 y 100). Compras y ventas calculan el IVA en el servidor a partir de la tarifa real de cada producto, ya no confian en el monto que manda el frontend.
