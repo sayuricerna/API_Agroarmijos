@@ -9,6 +9,12 @@ Cada entrada referencia también el tag académico `LB-XXX` correspondiente (hit
 _Sin cambios pendientes de liberar._
 
 ---
+## [1.9.0] - 2026-09-04 — `LB-022`
+### Added
+- Tarifa de IVA por producto (`iva_tarifa`): antes el 15% estaba fijo en el codigo, ahora es una propiedad del producto (por defecto 15%, editable entre 0 y 100). Compras y ventas calculan el IVA en el servidor a partir de la tarifa real de cada producto, ya no confian en el monto que manda el frontend.
+
+### Changed
+- `Venta::crearVenta()`: el calculo de IVA que antes confiaba en el valor del frontend (con un limite de seguridad del 50%) ahora se calcula por completo en el servidor, linea por linea, segun la tarifa de cada producto.
 
 ## [1.8.0] - 2026-09-03 — `LB-019`
 ### Added
