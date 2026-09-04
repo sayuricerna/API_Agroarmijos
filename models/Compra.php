@@ -12,16 +12,40 @@ class Compra {
         try {
             $this->conn->beginTransaction();
 
-            $query = "INSERT INTO compras (id_proveedor, id_usuario, numero_factura, fecha, subtotal, descuento, iva, total, observacion, estado) 
+            /*
+             * FEATURE (GCS — feature/iva-por-producto): el IVA de la
+             * compra ya no se toma tal cual del frontend (que antes
+             * asumía 15% fijo para todo el lote) — se recalcula aquí
+             * abajo, línea por línea, con la tarifa propia de cada
+             * producto (0%, 5%, 15% u otra), y se usa ese total en vez
+             * del que venga en $data['iva']. El subtotal/total del lote
+             * se siguen tomando del frontend (son la suma de
+             * costo_unitario × cantidad que la usuaria ya revisó contra
+             * la factura física del proveedor antes de guardar).
+             */
+            $iva_calculado = 0.0;
+            foreach ($data['productos'] as $prod) {
+                $qTarifa = "SELECT iva_tarifa FROM productos WHERE id_producto = :id";
+                $stTarifa = $this->conn->prepare($qTarifa);
+                $stTarifa->bindParam(":id", $prod['id_producto']);
+                $stTarifa->execute();
+                $filaTarifa = $stTarifa->fetch(PDO::FETCH_ASSOC);
+
+                $tarifa_linea = $filaTarifa ? (float) $filaTarifa['iva_tarifa'] : 15.0;
+                $subtotal_linea = (float) $prod['costo_unitario'] * (float) $prod['cantidad'];
+                $iva_calculado += $subtotal_linea * ($tarifa_linea / 100);
+            }
+
+            $query = "INSERT INTO compras (id_proveedor, id_usuario, numero_factura, fecha, subtotal, descuento, iva, total, observacion, estado)
                       VALUES (:id_proveedor, :id_usuario, :numero_factura, CURDATE(), :subtotal, :descuento, :iva, :total, :observacion, 'RECIBIDA')";
-            
+
             $stmt = $this->conn->prepare($query);
             $stmt->bindParam(":id_proveedor", $data['id_proveedor']);
             $stmt->bindParam(":id_usuario", $id_usuario);
             $stmt->bindParam(":numero_factura", $data['numero_factura']);
             $stmt->bindParam(":subtotal", $data['subtotal']);
             $stmt->bindParam(":descuento", $data['descuento']);
-            $stmt->bindParam(":iva", $data['iva']);
+            $stmt->bindParam(":iva", $iva_calculado);
             $stmt->bindParam(":total", $data['total']);
             $stmt->bindParam(":observacion", $data['observacion']);
             $stmt->execute();

@@ -35,11 +35,14 @@ class Venta {
             $lineas = [];
             $subtotal_general = 0.0;
             $descuento_general = 0.0;
+            $iva_general = 0.0;
 
             foreach ($data['productos'] as $prod) {
                 // Bloqueo de fila para control de concurrencia — ahora también
-                // trae el precio_venta real, no solo el stock.
-                $qStock = "SELECT stock_actual, stock_disponible, precio_venta FROM productos WHERE id_producto = :id FOR UPDATE";
+                // trae el precio_venta real, no solo el stock. FEATURE (GCS —
+                // feature/iva-por-producto): también trae iva_tarifa, la
+                // tarifa propia de este producto (ya no 15% fijo para todo).
+                $qStock = "SELECT stock_actual, stock_disponible, precio_venta, iva_tarifa FROM productos WHERE id_producto = :id FOR UPDATE";
                 $stStock = $this->conn->prepare($qStock);
                 $stStock->bindParam(":id", $prod['id_producto']);
                 $stStock->execute();
@@ -76,6 +79,14 @@ class Venta {
                 $subtotal_general += $subtotal_bruto_linea;
                 $descuento_general += $descuento_linea;
 
+                // FEATURE (GCS — feature/iva-por-producto): el IVA de cada
+                // línea se calcula con la tarifa propia del producto (0%,
+                // 5%, 15% u otra), no con un 15% fijo para toda la venta —
+                // así una venta puede mezclar productos de distinta tarifa
+                // y cada uno aporta lo que le corresponde de verdad.
+                $iva_tarifa_linea = (float) ($pActual['iva_tarifa'] ?? 15.0);
+                $iva_general += $subtotal_linea * ($iva_tarifa_linea / 100);
+
                 $lineas[] = [
                     "id_producto"     => $prod['id_producto'],
                     "cantidad"        => $cantidad,
@@ -87,18 +98,14 @@ class Venta {
                 ];
             }
 
-            // IVA: se sigue aceptando el valor calculado por el frontend
-            // (no conozco la tasa/regla exacta que usa el negocio), pero
-            // acotado dentro de un rango razonable para que no llegue
-            // negativo ni absurdamente alto respecto al subtotal real.
-            $iva = (float) ($data['iva'] ?? 0);
-            if ($iva < 0) {
-                $iva = 0;
-            }
-            $iva_maximo = $subtotal_general * 0.5;
-            if ($iva > $iva_maximo) {
-                $iva = $iva_maximo;
-            }
+            // FIX (GCS — feature/iva-por-producto): antes se aceptaba el
+            // IVA calculado por el frontend (con un tope de sanidad, ya
+            // que no había forma de validarlo contra nada). Ahora el IVA
+            // ya se calculó arriba línea por línea, con la tarifa real de
+            // cada producto — ya no hace falta confiar en lo que mande el
+            // frontend ni acotarlo, porque es un valor calculado aquí
+            // mismo a partir de datos de la base, no de la petición.
+            $iva = $iva_general;
 
             $total_general = $subtotal_general - $descuento_general + $iva;
 
