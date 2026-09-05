@@ -21,7 +21,7 @@ switch ($action) {
 
     case 'crear':
         if ($method === 'POST') {
-            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::BODEGA]);
             $productoController->guardar($input_data, (int) $currentUser['id_usuario']);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
@@ -30,7 +30,7 @@ switch ($action) {
 
     case 'actualizar':
         if ($method === 'PUT') {
-            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::BODEGA]);
             $id = $segments[2] ?? 0;
             $productoController->actualizar($id, $input_data, (int) $currentUser['id_usuario']);
         } else {
@@ -40,7 +40,7 @@ switch ($action) {
 
     case 'eliminar':
         if ($method === 'DELETE') {
-            $auth->checkRole($currentUser, ['ADMIN']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $id = $segments[2] ?? 0;
             $productoController->eliminar($id, (int) $currentUser['id_usuario']);
         } else {
@@ -50,7 +50,7 @@ switch ($action) {
 
     case 'ajustar':
         if ($method === 'POST') {
-            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::BODEGA]);
             $productoController->procesarAjuste($input_data, (int) $currentUser['id_usuario']);
         } else {
             Response::json("error", "Método no permitido.", null, 405);

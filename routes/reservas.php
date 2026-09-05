@@ -22,17 +22,7 @@ switch ($action) {
 
         $auth->checkRole(
             $currentUser,
-            [
-                'ADMIN',
-                'Administrador',
-                'administrador',
-                'VENDEDOR',
-                'vendedor',
-                'BODEGA',
-                'bodega',
-                'GERENTE',
-                'gerente'
-            ]
+            [Roles::ADMIN, Roles::VENDEDOR, Roles::BODEGA, Roles::GERENTE]
         );
 
         $controller->listar();
@@ -50,13 +40,7 @@ switch ($action) {
 
         $auth->checkRole(
             $currentUser,
-            [
-                'ADMIN',
-                'Administrador',
-                'administrador',
-                'VENDEDOR',
-                'vendedor'
-            ]
+            [Roles::ADMIN, Roles::VENDEDOR]
         );
 
         $controller->crear(
@@ -77,13 +61,7 @@ switch ($action) {
 
         $auth->checkRole(
             $currentUser,
-            [
-                'ADMIN',
-                'Administrador',
-                'administrador',
-                'VENDEDOR',
-                'vendedor'
-            ]
+            [Roles::ADMIN, Roles::VENDEDOR]
         );
 
         $idReserva = (int) ($segments[2] ?? 0);
@@ -102,13 +80,7 @@ switch ($action) {
 
         $auth->checkRole(
             $currentUser,
-            [
-                'ADMIN',
-                'Administrador',
-                'administrador',
-                'VENDEDOR',
-                'vendedor'
-            ]
+            [Roles::ADMIN, Roles::VENDEDOR]
         );
 
         $idReserva = (int) ($segments[2] ?? 0);
@@ -127,13 +99,7 @@ switch ($action) {
 
         $auth->checkRole(
             $currentUser,
-            [
-                'ADMIN',
-                'Administrador',
-                'administrador',
-                'VENDEDOR',
-                'vendedor'
-            ]
+            [Roles::ADMIN, Roles::VENDEDOR]
         );
 
         $idReserva = (int) ($segments[2] ?? 0);

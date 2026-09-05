@@ -13,7 +13,7 @@ switch ($action) {
 
     case 'ventas':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'GERENTE', 'VENDEDOR']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::GERENTE, Roles::VENDEDOR]);
             $desde = $_GET['desde'] ?? '';
             $hasta = $_GET['hasta'] ?? '';
             $controller->ventas($desde, $hasta);
@@ -24,7 +24,7 @@ switch ($action) {
 
     case 'compras':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'GERENTE']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::GERENTE]);
             $desde = $_GET['desde'] ?? '';
             $hasta = $_GET['hasta'] ?? '';
             $controller->compras($desde, $hasta);
@@ -35,7 +35,7 @@ switch ($action) {
 
     case 'stock-critico':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'GERENTE']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::GERENTE]);
             $controller->stockCritico();
         } else {
             Response::json("error", "Método no permitido.", null, 405);
@@ -44,7 +44,7 @@ switch ($action) {
 
     case 'productos':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'GERENTE']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::GERENTE]);
             $desde = $_GET['desde'] ?? '';
             $hasta = $_GET['hasta'] ?? '';
             $controller->productos($desde, $hasta);
@@ -55,7 +55,7 @@ switch ($action) {
 
     case 'clientes':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'GERENTE']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::GERENTE]);
             $desde = $_GET['desde'] ?? '';
             $hasta = $_GET['hasta'] ?? '';
             $controller->clientes($desde, $hasta);
@@ -66,7 +66,7 @@ switch ($action) {
 
     case 'proveedores':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'GERENTE']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::GERENTE]);
             $desde = $_GET['desde'] ?? '';
             $hasta = $_GET['hasta'] ?? '';
             $controller->proveedores($desde, $hasta);
@@ -77,7 +77,7 @@ switch ($action) {
 
     case 'kardex':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'GERENTE']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::GERENTE]);
             $desde = $_GET['desde'] ?? '';
             $hasta = $_GET['hasta'] ?? '';
             $controller->kardex($desde, $hasta);

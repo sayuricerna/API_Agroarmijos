@@ -11,7 +11,7 @@ $currentUser = $auth->checkAuth();
 // todo el sistema): mismo criterio que Usuarios/Roles, solo ADMIN.
 // El backend valida el rol aquí — el frontend oculta el menú, pero eso
 // nunca es suficiente por sí solo.
-$auth->checkRole($currentUser, ['ADMIN', 'administrador', 'Administrador']);
+$auth->checkRole($currentUser, [Roles::ADMIN]);
 
 $action = isset($segments[1]) ? $segments[1] : '';
 

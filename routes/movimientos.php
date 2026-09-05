@@ -7,7 +7,7 @@ $controller = new MovimientoController($db);
 $auth = new AuthMiddleware();
 $currentUser = $auth->checkAuth();
 
-$rolesPermitidos = ['ADMIN', 'Administrador', 'administrador', 'BODEGA', 'bodega', 'GERENTE', 'gerente'];
+$rolesPermitidos = [Roles::ADMIN, Roles::BODEGA, Roles::GERENTE];
 
 $action = isset($segments[1]) ? $segments[1] : '';
 
