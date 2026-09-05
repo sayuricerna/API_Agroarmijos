@@ -13,7 +13,7 @@ switch ($action) {
 
     case 'listar':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'administrador', 'Administrador']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $controller->listar();
         } else {
             Response::json("error", "Método no permitido.", null, 405);
@@ -22,7 +22,7 @@ switch ($action) {
 
     case 'crear':
         if ($method === 'POST') {
-            $auth->checkRole($currentUser, ['ADMIN', 'administrador', 'Administrador']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $controller->crear($input_data, (int) $currentUser['id_usuario']);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
@@ -31,7 +31,7 @@ switch ($action) {
 
     case 'actualizar':
         if ($method === 'PUT') {
-            $auth->checkRole($currentUser, ['ADMIN', 'administrador', 'Administrador']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $id = $segments[2] ?? 0;
             $controller->actualizar($id, $input_data, (int) $currentUser['id_usuario']);
         } else {
@@ -41,7 +41,7 @@ switch ($action) {
 
     case 'estado':
         if ($method === 'PUT') {
-            $auth->checkRole($currentUser, ['ADMIN', 'administrador', 'Administrador']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $id = $segments[2] ?? 0;
             $estado = $input_data['estado'] ?? 1;
             $controller->cambiarEstado($id, $estado, (int) $currentUser['id_usuario']);
@@ -52,7 +52,7 @@ switch ($action) {
 
     case 'password':
         if ($method === 'PUT') {
-            $auth->checkRole($currentUser, ['ADMIN', 'administrador', 'Administrador']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $id = $segments[2] ?? 0;
             $password = $input_data['password'] ?? '';
             $controller->cambiarPassword($id, $password, (int) $currentUser['id_usuario']);

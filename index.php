@@ -6,6 +6,7 @@ Env::load(__DIR__ . '/.env');
 require_once __DIR__ . '/config/Cors.php';
 require_once __DIR__ . '/vendor/autoload.php';
 require_once __DIR__ . '/config/Database.php';
+require_once __DIR__ . '/config/Roles.php';
 require_once __DIR__ . '/middlewares/AuthMiddleware.php';
 require_once __DIR__ . '/helpers/Response.php';
 

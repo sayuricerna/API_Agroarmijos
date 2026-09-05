@@ -11,7 +11,7 @@ switch ($action) {
 
     case 'listar':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::BODEGA]);
             $compraController->listar();
         } else {
             Response::json("error", "Método no permitido.", null, 405);
@@ -20,7 +20,7 @@ switch ($action) {
 
     case 'detalle':
         if ($method === 'GET') {
-            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::BODEGA]);
             $idCompra = (int) ($segments[2] ?? 0);
             $compraController->detalle($idCompra);
         } else {
@@ -30,12 +30,7 @@ switch ($action) {
 
     case 'crear':
         if ($method === 'POST') {
-            // FIX (GCS — feature/compras-listar-anular): el rol 'COMPRAS'
-            // no existe en la tabla roles (solo ADMIN, VENDEDOR, BODEGA,
-            // GERENTE), así que este checkRole nunca dejaba pasar a nadie
-            // salvo ADMIN. Se corrige a BODEGA, que es el rol que de
-            // hecho tiene acceso a /compras según el guard del frontend.
-            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::BODEGA]);
             $compraController->procesar($input_data, $currentUser['id_usuario']);
         } else {
             Response::json("error", "Método no permitido.", null, 405);
@@ -44,7 +39,7 @@ switch ($action) {
 
     case 'anular':
         if ($method === 'PUT') {
-            $auth->checkRole($currentUser, ['ADMIN']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $idCompra = (int) ($segments[2] ?? 0);
             $compraController->anular($idCompra, (int) $currentUser['id_usuario'], $input_data['motivo'] ?? '');
         } else {

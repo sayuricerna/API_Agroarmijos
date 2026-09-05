@@ -56,14 +56,9 @@ switch ($action) {
     case 'crear':
         if ($method === 'POST') {
             if ($tabla === 'clientes') {
-                $auth->checkRole($currentUser, ['ADMIN', 'VENDEDOR']);
+                $auth->checkRole($currentUser, [Roles::ADMIN, Roles::VENDEDOR]);
             } else {
-                // FIX (GCS — fix/catalogos-rol-compras-inexistente): el rol
-                // 'COMPRAS' no existe en la tabla roles (solo ADMIN,
-                // VENDEDOR, BODEGA, GERENTE), así que este checkRole nunca
-                // dejaba pasar a nadie salvo ADMIN. Se corrige a BODEGA,
-                // igual que ya se hizo en routes/compras.php.
-                $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+                $auth->checkRole($currentUser, [Roles::ADMIN, Roles::BODEGA]);
             }
             $controller->guardar($tabla, $input_data, (int) $currentUser['id_usuario']);
         }
@@ -71,7 +66,7 @@ switch ($action) {
 
     case 'eliminar':
         if ($method === 'DELETE') {
-            $auth->checkRole($currentUser, ['ADMIN']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $id = isset($segments[2]) ? $segments[2] : 0;
             $controller->eliminar($tabla, $pk, $id, (int) $currentUser['id_usuario']);
         }
@@ -81,7 +76,7 @@ switch ($action) {
         // Mismo rol que 'eliminar': dar de baja y reactivar son la misma
         // operación (cambiar estado), así que exigen el mismo permiso.
         if ($method === 'PUT') {
-            $auth->checkRole($currentUser, ['ADMIN']);
+            $auth->checkRole($currentUser, [Roles::ADMIN]);
             $id = isset($segments[2]) ? $segments[2] : 0;
             $controller->reactivar($tabla, $pk, $id, (int) $currentUser['id_usuario']);
         } else {
@@ -91,10 +86,9 @@ switch ($action) {
         case 'actualizar':
     if ($method === 'PUT') {
         if ($tabla === 'clientes') {
-            $auth->checkRole($currentUser, ['ADMIN', 'VENDEDOR']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::VENDEDOR]);
         } else {
-            // Mismo fix que en 'crear': 'COMPRAS' no es un rol real.
-            $auth->checkRole($currentUser, ['ADMIN', 'BODEGA']);
+            $auth->checkRole($currentUser, [Roles::ADMIN, Roles::BODEGA]);
         }
 
         $id = isset($segments[2]) ? $segments[2] : 0;
