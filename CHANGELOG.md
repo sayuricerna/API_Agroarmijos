@@ -9,6 +9,10 @@ Cada entrada referencia también el tag académico `LB-XXX` correspondiente (hit
 _Sin cambios pendientes de liberar._
 
 ---
+## [1.9.3] - 2026-09-05 — `LB-027`
+### Changed
+- Todas las rutas que validan rol (`checkRole`) ahora usan constantes (`Roles::ADMIN`, `Roles::VENDEDOR`, `Roles::BODEGA`, `Roles::GERENTE`, definidas en `config/Roles.php`) en vez de escribir el nombre del rol como texto suelto en cada archivo. Previene que un typo o un rol inexistente (como paso con `COMPRAS`) vuelva a colarse sin avisar. No cambia el comportamiento para ningun usuario; de paso se limpiaron variantes en minuscula (`'administrador'`, `'bodega'`, etc.) que quedaban sueltas en varias rutas y nunca hacian match con nada real.
+
 ## [1.9.2] - 2026-09-04 — `LB-026`
 ### Fixed
 - Rol `COMPRAS` inexistente en `catalogos.php`: las operaciones "crear" y "actualizar" de categorias, marcas, proveedores y ubicaciones exigian ese rol, que no existe en la tabla `roles` (solo ADMIN, VENDEDOR, BODEGA, GERENTE), asi que ningun usuario BODEGA podia pasar ese chequeo. Se corrige a BODEGA, igual que ya estaba en `routes/compras.php`.
